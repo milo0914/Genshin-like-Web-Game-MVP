@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360">
+<style>text{font-family:sans-serif;font-size:13px;fill:#222}</style>
+<rect width="900" height="360" fill="#F4F6F9"/>
+<text x="30" y="40" font-size="22" font-weight="bold">黎恩 配色表 Color Palette</text>
+<rect x="30" y="70" width="190" height="55" rx="8" fill="#4A5A73" stroke="#888"/>
+<text x="30" y="145">風衣主色 暴風灰藍</text>
+<text x="30" y="160" font-size="11" fill="#666">#4A5A73</text>
+<rect x="245" y="70" width="190" height="55" rx="8" fill="#3B2A4E" stroke="#888"/>
+<text x="245" y="145">內襯 深紫</text>
+<text x="245" y="160" font-size="11" fill="#666">#3B2A4E</text>
+<rect x="460" y="70" width="190" height="55" rx="8" fill="#1B1E24" stroke="#888"/>
+<text x="460" y="145">緊身衣 墨黑</text>
+<text x="460" y="160" font-size="11" fill="#666">#1B1E24</text>
+<rect x="675" y="70" width="190" height="55" rx="8" fill="#6E7681" stroke="#888"/>
+<text x="675" y="145">胸甲 鋼鐵灰</text>
+<text x="675" y="160" font-size="11" fill="#666">#6E7681</text>
+<rect x="30" y="165" width="190" height="55" rx="8" fill="#1F2538" stroke="#888"/>
+<text x="30" y="240">髮 深藍黑</text>
+<text x="30" y="255" font-size="11" fill="#666">#1F2538</text>
+<rect x="245" y="165" width="190" height="55" rx="8" fill="#E8F1FF" stroke="#888"/>
+<text x="245" y="240">挑染 電光白</text>
+<text x="245" y="255" font-size="11" fill="#666">#E8F1FF</text>
+<rect x="460" y="165" width="190" height="55" rx="8" fill="#E0A42E" stroke="#888"/>
+<text x="460" y="240">左眼 琥珀金</text>
+<text x="460" y="255" font-size="11" fill="#666">#E0A42E</text>
+<rect x="675" y="165" width="190" height="55" rx="8" fill="#6FC7E8" stroke="#888"/>
+<text x="675" y="240">右眼 冰藍</text>
+<text x="675" y="255" font-size="11" fill="#666">#6FC7E8</text>
+<rect x="30" y="260" width="190" height="55" rx="8" fill="#D64E2B" stroke="#888"/>
+<text x="30" y="335">火元素 熔紅</text>
+<text x="30" y="350" font-size="11" fill="#666">#D64E2B</text>
+<rect x="245" y="260" width="190" height="55" rx="8" fill="#8A5BE0" stroke="#888"/>
+<text x="245" y="335">雷元素 雷紫</text>
+<text x="245" y="350" font-size="11" fill="#666">#8A5BE0</text>
+<rect x="460" y="260" width="190" height="55" rx="8" fill="#EBD3C2" stroke="#888"/>
+<text x="460" y="335">皮膚 冷白</text>
+<text x="460" y="350" font-size="11" fill="#666">#EBD3C2</text>
+<rect x="675" y="260" width="190" height="55" rx="8" fill="#A9B0BC" stroke="#888"/>
+<text x="675" y="335">金屬 古銅銀</text>
+<text x="675" y="350" font-size="11" fill="#666">#A9B0BC</text>
+</svg>

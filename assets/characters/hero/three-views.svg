@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720">
+<rect width="1100" height="720" fill="#F2F4F8"/>
+<style> text { font-family: "Noto Sans", sans-serif; } </style>
+<text x="40" y="40" font-size="24" font-weight="bold" fill="#222">黎恩 Rein — 三視圖（7.5 頭身 / 178 cm）</text>
+<text x="120" y="690" font-size="16" text-anchor="middle" fill="#444">正面 Front</text>
+<g transform="translate(120,0)">
+<ellipse cx="0" cy="640" rx="70" ry="10" fill="#000" opacity="0.12"/>
+<ellipse cx="0" cy="95" rx="34" ry="40" fill="#1F2538"/>
+<ellipse cx="0" cy="105" rx="30" ry="34" fill="#EBD3C2"/>
+<path d="M-32,80 Q0,58 32,80 l0,18 q-10,-12 -32,-10 q-22,-2 -32,10 z" fill="#1F2538"/>
+<path d="M-8,64 q10,-10 22,-4 l-4,14 q-10,-6 -18,-10" fill="#E8F1FF"/>
+<ellipse cx="-11" cy="106" rx="4" ry="5.5" fill="#E0A42E"/>
+<ellipse cx="11" cy="106" rx="4" ry="5.5" fill="#6FC7E8"/>
+<ellipse cx="-11" cy="106" rx="1.6" ry="2.2" fill="#222"/>
+<ellipse cx="11" cy="106" rx="1.6" ry="2.2" fill="#222"/>
+<path d="M-4,124 q4,3 8,0" stroke="#A66" stroke-width="1.2" fill="none"/>
+<rect x="-11" y="133" width="22" height="14" fill="#EBD3C2"/>
+<path d="M-16,140 h32 v14 h-32 z" fill="#1B1E24"/>
+<path d="M-26.0,176 h52 l0,0" fill="none"/>
+<path d="M-26,176 h52 l-4,92 h-44 z" fill="#1B1E24"/>
+<path d="M-30,182 q30,-12 60,0 l-4,48 h-52 z" fill="#6E7681" opacity="0.95"/>
+<path d="M-30,182 q30,-12 60,0 l-1,10 q-29,-10 -58,0 z" fill="#A9B0BC" opacity="0.6"/>
+<path d="M-62,178 q18,-16 34,-8 l4,26 q-22,6 -38,-4 z" fill="#6E7681" stroke="#A9B0BC"/>
+<path d="M-64,180 q-16,120 -6,256 l30,2 q0,-130 6,-252 z" fill="#4A5A73"/>
+<path d="M64,180 q16,120 6,256 l-30,2 q0,-130 -6,-252 z" fill="#4A5A73"/>
+<path d="M-64,180 q-16,120 -6,256 l6,0 q-8,-132 8,-254 z" fill="#3B2A4E" opacity="0.9"/>
+<path d="M64,180 q16,120 6,256 l-6,0 q8,-132 -8,-254 z" fill="#3B2A4E" opacity="0.9"/>
+<path d="M-58,190 q-14,40 -10,120 q0,20 8,22 l8,-4 q-2,-80 10,-118 z" fill="#1B1E24"/>
+<path d="M58,190 q14,40 10,120 q0,20 -8,22 l-8,-4 q2,-80 -10,-118 z" fill="#1B1E24"/>
+<rect x="52" y="300" width="14" height="8" fill="#DDD3C8" transform="rotate(-6 59 304)"/>
+<rect x="50" y="312" width="14" height="8" fill="#DDD3C8" transform="rotate(-2 59 316)"/>
+<rect x="52" y="324" width="14" height="8" fill="#DDD3C8" transform="rotate(2 59 328)"/>
+<rect x="50" y="336" width="14" height="8" fill="#DDD3C8" transform="rotate(6 59 340)"/>
+<ellipse cx="59" cy="352" rx="7" ry="10" fill="#DDD3C8"/>
+<ellipse cx="-59" cy="352" rx="7" ry="10" fill="#EBD3C2"/>
+<path d="M-30,436 h26 l-4,158 h-20 z" fill="#3A3F4A"/>
+<path d="M30,436 h-26 l4,158 h20 z" fill="#3A3F4A"/>
+<path d="M-30,470 h26 v14 h-26 z" fill="#A9B0BC" opacity="0.7"/>
+<path d="M4,470 h26 v14 h-26 z" fill="#A9B0BC" opacity="0.7"/>
+<path d="M-34,594 h26 v36 q-14,10 -30,4 l2,-34 z" fill="#2A2D33"/>
+<path d="M8,594 h26 l4,34 q-16,6 -30,-4 z" fill="#2A2D33"/>
+<circle cx="-31" cy="118" r="2.5" fill="#8A5BE0"/>
+<rect x="-33" y="121" width="4" height="9" fill="#8A5BE0" opacity="0.8"/>
+</g>
+<text x="450" y="690" font-size="16" text-anchor="middle" fill="#444">側面 Side</text>
+<g transform="translate(450,0)">
+<ellipse cx="0" cy="640" rx="70" ry="10" fill="#000" opacity="0.12"/>
+<ellipse cx="0" cy="95" rx="34" ry="40" fill="#1F2538"/>
+<ellipse cx="2" cy="105" rx="28" ry="34" fill="#EBD3C2"/>
+<path d="M-30,70 Q10,55 30,78 q4,26 -6,50 q-14,-8 -18,-34 q-18,-16 -30,-24 z" fill="#1F2538"/>
+<ellipse cx="16" cy="106" rx="3.5" ry="5" fill="#6FC7E8"/>
+<ellipse cx="16" cy="106" rx="1.3" ry="2" fill="#222"/>
+<rect x="-11" y="133" width="22" height="14" fill="#EBD3C2"/>
+<path d="M-16,140 h32 v14 h-32 z" fill="#1B1E24"/>
+<path d="M-13.0,176 h26 l0,0" fill="none"/>
+<path d="M-26,176 h52 l-4,92 h-44 z" fill="#1B1E24"/>
+<path d="M-13,176 h26 l-2,92 h-22 z" fill="#1B1E24"/>
+<path d="M-30,182 q30,-12 60,0 l-4,48 h-52 z" fill="#6E7681" opacity="0.95"/>
+<path d="M-30,182 q30,-12 60,0 l-1,10 q-29,-10 -58,0 z" fill="#A9B0BC" opacity="0.6"/>
+<path d="M-20,180 q-14,126 -4,258 q18,6 30,2 q4,-130 -10,-260 z" fill="#4A5A73"/>
+<path d="M-20,180 q-6,126 0,252 q4,2 8,2 q0,-128 -4,-256 z" fill="#3B2A4E" opacity="0.7"/>
+<path d="M14,190 q10,44 6,126 q0,20 -6,22 l-7,-4 q3,-84 -5,-120 z" fill="#1B1E24"/>
+<path d="M-16,436 h28 l-2,158 h-24 z" fill="#3A3F4A"/>
+<path d="M-18,594 h28 v34 q-14,8 -28,2 z" fill="#2A2D33"/>
+<g transform="rotate(25 20 340)"><rect x="14" y="300" width="12" height="180" rx="4" fill="#2B2F3A" stroke="#A9B0BC"/></g>
+<rect x="10" y="330" width="20" height="10" fill="#A9B0BC"/>
+</g>
+<text x="780" y="690" font-size="16" text-anchor="middle" fill="#444">背面 Back</text>
+<g transform="translate(780,0)">
+<ellipse cx="0" cy="640" rx="70" ry="10" fill="#000" opacity="0.12"/>
+<ellipse cx="0" cy="95" rx="34" ry="40" fill="#1F2538"/>
+<path d="M-32,72 Q0,55 32,72 l0,58 q-16,10 -32,0 z" fill="#1F2538"/>
+<path d="M-4,66 q12,-4 20,0 l-4,12 q-8,-6 -16,-12" fill="#E8F1FF"/>
+<rect x="-11" y="133" width="22" height="14" fill="#EBD3C2"/>
+<path d="M-16,140 h32 v14 h-32 z" fill="#1B1E24"/>
+<path d="M-26.0,176 h52 l0,0" fill="none"/>
+<path d="M-26,176 h52 l-4,92 h-44 z" fill="#1B1E24"/>
+<path d="M-28,178 h56 l-2,50 h-52 z" fill="#5A616C"/>
+<rect x="-34" y="180" width="68" height="250" rx="6" fill="#4A5A73"/>
+<path d="M0,180 v250" stroke="#3B2A4E" stroke-width="3"/>
+<path d="M-16,436 h28 l-2,158 h-24 z" fill="#3A3F4A"/>
+<path d="M-18,594 h28 v34 q-14,8 -28,2 z" fill="#2A2D33"/>
+<g transform="rotate(20 10 340)"><rect x="4" y="300" width="13" height="150" rx="4" fill="#2B2F3A" stroke="#A9B0BC"/></g>
+</g>
+</svg>

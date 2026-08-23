@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>M2 設計提案 — 競技場 + 敵人</title>
+<style>
+  body{font-family:"Noto Sans TC",sans-serif;background:#0f1220;color:#e8ecf5;max-width:960px;margin:auto;padding:32px}
+  h1{color:#8ab4ff} h2{color:#9ecbff;border-bottom:1px solid #2a3350;padding-bottom:6px}
+  h3{color:#b5cdfb}
+  table{border-collapse:collapse;width:100%;margin:12px 0}
+  td,th{border:1px solid #33406a;padding:8px;text-align:left;font-size:14px}
+  .card{background:#171c30;border-radius:10px;padding:20px;margin:16px 0}
+  img{max-width:100%;background:#fff;border-radius:8px;margin:12px 0}
+  .pill{display:inline-block;padding:3px 10px;border-radius:12px;background:#22305a;margin:2px;font-size:13px}
+  .enemy{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .enemy>div{background:#1e2745;border-radius:8px;padding:14px}
+</style>
+</head>
+<body>
+<h1>Milestone 2 — 競技場 + 敵人設計提案</h1>
+<p><span class="pill">單一封閉場地</span><span class="pill">5 種基底敵人</span><span class="pill">AI 隨機外觀</span><span class="pill">Low-Poly 起步</span></p>
+
+<div class="card">
+<h2>1. 競技場設計 — 三相遺跡</h2>
+<p><b>核心概念：</b>廢棄的古代元素研究場，中央是曾封印「三相之核」的圓形儀式場，現為流浪者試煉之地。</p>
+<img src="arena-concept.svg" alt="競技場概念圖" onerror="this.remove()">
+<table>
+<tr><th>項目</th><th>設定</th></tr>
+<tr><td>尺寸</td><td>直徑 30m 圓形場地</td></tr>
+<tr><td>掩體</td><td>8 根雷紋石柱（高 6m，3 種變體）</td></tr>
+<tr><td>地面</td><td>深灰石板 + 三道元素裂痕（火紅 / 冰藍 / 雷紫）</td></tr>
+<tr><td>光照</td><td>暴風黃昏：暖金側逆光 + 冷藍雲反光</td></tr>
+<tr><td>元素反饋</td><td>火→裂縫泛紅光 / 冰→霧面覆蓋 30s / 雷→石柱頂閃電連線</td></tr>
+<tr><td>面數預算</td><td>&lt; 30K 三角面，WebGL 720p 穩定 60fps</td></tr>
+</table>
+<p><a style="color:#9ecbff" href="https://example.com">完整文件 → arena-design.md</a></p>
+</div>
+
+<div class="card">
+<h2>2. 敵人影廊（5 種基底 — 由 Agnes 生成）</h2>
+<img src="enemies-concept.png" alt="5 enemies concept">
+<p><b>說明：</b>E1 已依 AI 實際生成調整為「掠焰狼 Ember Prowler」（火系突進狼形），以圖為準。</p>
+<div class="enemy">
+  <div>
+    <h3>E1 · 掠焰狼 Ember Prowler</h3>
+    <img src="enemies/prowler.svg" onerror="this.remove()">
+    <p><b>元素：</b>火　<b>體型：</b>瘦長狼形人（7.5H）<br>
+    <b>動作：</b>突進 + 火焰斬擊（連續二刀）<br>
+    <b>武器：</b>火焰彎刀　<b>弱點：</b>冰</p>
+  </div>
+  <div>
+    <h3>E2 · 巨石守衛 Stoneguard</h3>
+    <img src="enemies/stoneguard.svg" onerror="this.remove()">
+    <p><b>元素：</b>地/無　<b>體型：</b>壯碩（8H）<br>
+    <b>動作：</b>格擋 + 重拳 + 震地<br>
+    <b>武器：</b>巨盾 + 石拳　<b>弱點：</b>冰/雷</p>
+  </div>
+  <div>
+    <h3>E3 · 火語術士 Embermancer</h3>
+    <img src="enemies/embermancer.svg" onerror="this.remove()">
+    <p><b>元素：</b>火　<b>體型：</b>法袍（7.5H）<br>
+    <b>動作：</b>詠唱 + 火彈 + 範圍灼燒<br>
+    <b>武器：</b>法杖　<b>弱點：</b>冰超導</p>
+  </div>
+  <div>
+    <h3>E4 · 冰霜射手 Frost Archer</h3>
+    <img src="enemies/frost-archer.svg" onerror="this.remove()">
+    <p><b>元素：</b>冰　<b>體型：</b>弓手（7.5H）<br>
+    <b>動作：</b>後跳 + 冰矢 + 減速陷阱<br>
+    <b>武器：</b>長弓　<b>弱點：</b>火過載</p>
+  </div>
+  <div>
+    <h3>E5 · 雷角巨獸 Stormhorn</h3>
+    <img src="enemies/stormhorn.svg" onerror="this.remove()">
+    <p><b>元素：</b>雷　<b>體型：</b>四足獸型<br>
+    <b>動作：</b>衝撞 + 踐踏 + 雷吼 AoE<br>
+    <b>武器：</b>天生雷角　<b>弱點：</b>冰超導</p>
+  </div>
+</div>
+<p><a style="color:#9ecbff" href="https://example.com">完整文件 → enemies-design.md</a></p>
+</div>
+
+<div class="card">
+<h2>3. AI 隨機外觀生成</h2>
+<p>5 基底 × 4 元素 × 3 體型 × 4 頭部配件 × 3 背脊配件 × 4 武器 × 染色（Hue×2）× 光環 = <b>&gt;30,000 種外觀組合</b>，僅需 5 套基底模型 + 14 種配件。</p>
+<p><a style="color:#9ecbff" href="https://example.com">規格書 → enemy-rng-spec.md</a></p>
+</div>
+
+<h2>待確認事項</h2>
+<ol>
+  <li>五種敵人方向是否 OK？</li>
+  <li>競技場「三相遺跡」風格是否符合期待？</li>
+  <li>敵人 AI 是否需要從 Agnes 生成概念圖？（Agnes 對本機 IP 應該可用）</li>
+  <li>OK → 進入 M3 核心戰鬥原型</li>
+</ol>
+</body>
+</html>

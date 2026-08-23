@@ -1,0 +1,4 @@
+__pycache__/
+agnes-out/
+resp*.json
+*.log
