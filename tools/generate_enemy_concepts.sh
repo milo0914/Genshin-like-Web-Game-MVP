@@ -2,7 +2,7 @@
 # Enemy concept art generation script for local machine (Agnes API).
 # Run on user machine, then send resulting URLs back.
 set -e
-KEY="sk-rTKjOCZ5LLuj6susg9L4C9UMeHRRRt9YoRwBmZGJsbBvyfyW"
+KEY="${AGNES_API_KEY:?Set AGNES_API_KEY env var}"
 BASE_URL="https://apihub.agnes-ai.com/v1/images/generations"
 OUT_DIR="$(pwd)/agnes-out"
 mkdir -p "$OUT_DIR"
