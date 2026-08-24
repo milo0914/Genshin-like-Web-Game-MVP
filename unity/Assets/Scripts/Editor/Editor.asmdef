@@ -1,0 +1,17 @@
+{
+    "name": "Arena.Editor",
+    "rootNamespace": "Arena.Editor",
+    "references": [
+        "Arena.Combat",
+        "Arena.Enemies"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
