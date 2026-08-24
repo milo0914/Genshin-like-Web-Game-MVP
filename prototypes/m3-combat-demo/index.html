@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>元素競技場 — Three.js 可玩 Demo</title>
+<style>
+  body{margin:0;background:#0a0d18;color:#cfddf6;font-family:"Noto Sans TC",sans-serif;overflow:hidden}
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:14px 18px;pointer-events:none;z-index:10;text-shadow:0 1px 3px #000}
+  .panel{background:rgba(10,14,25,0.6);border:1px solid #2a3864;border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px)}
+  .hp{background:#2a1217;border:1px solid #5c2430;width:220px;height:14px;border-radius:4px;position:relative}
+  .hp>i{position:absolute;inset:0;background:linear-gradient(90deg,#e14b4b,#7e3b3b);border-radius:4px;transition:width 0.15s}
+  .label{font-size:11px;opacity:0.7;margin-bottom:4px}
+  #energy .fill{background:linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0);height:6px;border-radius:3px;transition:width 0.2s}
+  #log{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;font-size:14px;text-shadow:0 1px 3px #000}
+  #controls{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(15,20,40,0.7);padding:8px 14px;border-radius:20px;font-size:12px;border:1px solid #2a3864;pointer-events:none}
+  #controls span{margin:0 6px;opacity:0.9}
+  .element-pill{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:4px;border:2px solid #fff;opacity:0.5}
+  .element-pill.active{opacity:1;transform:scale(1.2)}
+  #result{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:20;text-align:center}
+  #result h1{font-size:60px}
+  #result button{padding:12px 30px;font-size:18px;background:#35497e;color:#e8ecf5;border:none;border-radius:6px;cursor:pointer}
+  .big{font-size:26px;color:#ffd97e;text-shadow:0 0 18px #d64e2b}
+  #aim{position:fixed;left:50%;top:50%;width:8px;height:8px;border:2px solid #fff5;border-radius:50%;margin:-5px;pointer-events:none;display:none}
+  #arena{position:fixed;inset:0;display:block}
+</style>
+</head>
+<body>
+<div id="aim"></div>
+<canvas id="arena"></canvas>
+<div id="hud">
+  <div class="panel">
+    <div class="label">黎恩 Rein</div>
+    <div class="hp"><i id="hp"></i></div>
+    <div class="label" style="margin-top:10px">絕招能量</div>
+    <div id="energy"><div class="fill" style="width:0%"></div></div>
+    <div class="label" style="margin-top:10px">元素形式</div>
+    <div>
+      <span class="element-pill" data-el="1" style="background:#d64e2b"></span>
+      <span class="element-pill" data-el="2" style="background:#6fc7e8"></span>
+      <span class="element-pill" data-el="3" style="background:#8a5be0"></span>
+    </div>
+    <div class="label" style="margin-top:10px">切換隊友</div>
+    <div>
+      <span class="element-pill" data-el="f1" style="background:#66e0b0"></span>
+      <span class="element-pill" data-el="f2" style="background:#f5d76e"></span>
+      <span class="element-pill" data-el="f3" style="background:#ff9ecb"></span>
+    </div>
+  </div>
+  <div class="panel" style="text-align:right">
+    <div class="label">敵人</div>
+    <div class="hp" style="margin-left:auto"><i id="ehp"></i></div>
+    <div class="label" id="ename">-</div>
+    <div class="label">元素附著 <span id="aura">無</span></div>
+    <div class="label">剩餘敵人 <span id="kills">0</span> / <span id="killGoal">6</span></div>
+  </div>
+</div>
+<div id="log"></div>
+<div id="controls">
+  移動 <span>WASD</span>
+  衝刺 <span>Space</span>
+  普攻 <span>左鍵</span>
+  元素 <span>1 火 / 2 冰 / 3 雷</span>
+  戰技 <span>E</span>
+  絕招 <span>Q</span>
+  切換隊友 <span>F / 4-6</span>
+</div>
+<div id="result">
+  <div>
+    <h1 id="resultTitle">勝利！</h1>
+    <p id="resultSub">你已完成競技場試煉</p>
+    <button onclick="location.reload()">再來一局</button>
+  </div>
+</div>
+
+<script src="game-canvas2d.js"></script>
+</body>
+</html>
