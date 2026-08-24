@@ -25,7 +25,7 @@ public static class ArenaSetupWizard
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         scene.name = "Arena_ThreePhase";
 
-        // 1. 競技場
+        // 1. 場景
         CreateArenaGround();
         CreatePillars();
         CreateElementalCracks();
@@ -41,16 +41,33 @@ public static class ArenaSetupWizard
         // 4. HUD
         CreateHUD();
 
-        // 5. Camera+Cinemachine
+        // 5. 攝影機
         CreateCameraRig(player.transform);
 
-        // 6. WebGL Build 設定
+        // 6. WebGL 設定
         SetupWebGLBuild();
 
         // 7. 存檔
         Directory.CreateDirectory("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, "Assets/Scenes/Arena_ThreePhase.unity");
+
+        // 8. 嘗試自動替換真實資產
+        TryAutoImportAssets();
+
         Debug.Log("[Arena] Arena_ThreePhase 場景已生成! Play 測試或 Build WebGL。");
+    }
+
+    static void TryAutoImportAssets()
+    {
+        // 引導使用者去下載 Asset Store 資產
+        if (EditorUtility.DisplayDialog("Auto Import Assets?",
+            "要自動下載免費資產嗎（YBot + RPG Monster Wave 2）？\n\n需網路連線 + Unity Editor 已登入。", "下載", "略過"))
+        {
+            Application.OpenURL("https://assetstore.unity.com/packages/3d/characters/ybot-character-194969");
+            Application.OpenURL("https://assetstore.unity.com/packages/3d/characters/creatures/rpg-monster-wave-2-polyart-249251");
+            Application.OpenURL("https://assetstore.unity.com/packages/3d/animations/mixamo-starter-animations-170272");
+            Debug.Log("[Arena] 請等待資產下載完成後，執行 Arena > Replace Placeholders with Real Assets");
+        }
     }
 
     static void EnsureTagsAndLayers()
