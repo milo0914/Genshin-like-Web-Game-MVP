@@ -75,7 +75,15 @@
     <div class="label" id="ename" style="font-size:13px;font-weight:bold">—</div>
     <div class="label">元素附著：<span id="aura" style="color:#aaa">無</span></div>
     <div id="superconduct" style="display:none;color:#c87fff;font-size:10px;margin-top:3px">⚡ 防禦 -40%</div>
-    <div class="label" style="margin-top:12px;font-size:13px">擊殺 <span id="kills" style="color:#ffd97e;font-size:16px">0</span> / <span id="killGoal">6</span></div>
+    <div class="label" style="margin-top:12px;font-size:13px">
+      <span id="waveLabel" style="color:#ffd97e">第 1 波</span>
+    </div>
+    <div style="background:#1a1a2e;border:1px solid #2a3864;width:200px;height:6px;border-radius:3px;margin-top:4px;overflow:hidden">
+      <div id="waveProgress" style="height:100%;background:linear-gradient(90deg,#ffd97e,#ff9e3b);width:0%;transition:width 0.3s;border-radius:3px"></div>
+    </div>
+    <div class="label" style="font-size:11px;margin-top:4px">
+      擊殺 <span id="kills" style="color:#ffd97e">0</span> / <span id="killGoal">6</span>
+    </div>
   </div>
 </div>
 

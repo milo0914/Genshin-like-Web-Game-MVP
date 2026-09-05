@@ -75,6 +75,11 @@ let elementalCrackFlash=[0,0,0]; // 三裂縫當前發光計時
 const keys={};
 let shake=0, shakeMag=0;
 let hitStop=0;
+let wave=1;                       // 當前波次
+let waveKills=0;                   // 本波擊殺數
+let waveKillsGoal=KILL_GOAL;       // 本波目標
+let waveClearTimer=0;              // 波次間隔計時
+let isWaveClear=false;
 
 // ---- 工具函式 ----
 function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
@@ -112,6 +117,12 @@ function flashCrack(element){
 function spawnEnemy(){
   const t = E_TYPES[Math.floor(Math.random()*E_TYPES.length)];
   const ang = Math.random()*Math.PI*2, d = rand(200, ARENA_R-30);
+  // DNA 隨機外觀（依 enemy-rng-spec.md）
+  const hue = Math.random();
+  const sat = 0.5 + Math.random()*0.4;  // 0.5~0.9
+  const val = 0.4 + Math.random()*0.3;  // 0.4~0.7
+  const bodyScale = 0.88 + Math.random()*0.28; // 0.88~1.16（對應Slim~Bulky）
+  const baseColor = HSVtoRGB(hue, sat, val);
   enemies.push({
     type:t, x:Math.cos(ang)*d, y:Math.sin(ang)*d,
     r:t.radius, hp:t.hp, maxHp:t.hp,
@@ -120,8 +131,26 @@ function spawnEnemy(){
     hurtT:0, walkT:0, teleT:0,
     superconductT:0,
     knockbackT:0, knockbackVX:0, knockbackVY:0,
+    // DNA
+    dna: { hue, sat, val, bodyScale, baseColor },
   });
 }
+
+function HSVtoRGB(h, s, v){
+  const i = Math.floor(h*6);
+  const f = h*6-i;
+  const p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
+  switch(i%6){
+    case 0: return [v,t,p];
+    case 1: return [q,v,p];
+    case 2: return [p,v,t];
+    case 3: return [p,q,v];
+    case 4: return [t,p,v];
+    case 5: return [v,p,q];
+  }
+  return [v,v,v];
+}
+function rgbStr([r,g,b]){ return `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`; }
 
 // ---- 獲取當前角色數值 ----
 function currentAtk(){
@@ -296,13 +325,13 @@ function dealDamage(t, atk, elem, mult){
   }
 
   if (t.hp<=0){
-    kills++;
+    kills++; waveKills++;
     spawnCrystal(t.x, t.y, elem);
     effects.push({kind:'death', x:t.x, y:t.y, color:EL_COLOR[elem]||'#fff', life:0.6, max:0.6, r:t.r});
     screenShake(6); hitStopDo(0.12);
     playTone(80, 0.3, 'sine', 0.3);
     if (player.target===t) player.target=null;
-    if (kills>=KILL_GOAL && !gameOver) endGame(true);
+    // 無需在這裡檢查波次勝利，波次邏輯在主循環處理
   }
 }
 
@@ -696,41 +725,58 @@ function drawEnemies(){
     }
 
     const img=IMGS.enemies[e.type.imgIdx];
-    const size=e.r*2.6;
+    const dna=e.dna||{};
+    const size=(e.r*2.6)*(dna.bodyScale||1);
     if (imgsReady>=IMG_TOTAL && img && img.complete && img.naturalWidth){
       const bobY=Math.sin(e.walkT)*1.5;
       const facing=(player.x-e.x)>0?1:-1;
       ctx.scale(facing,1);
+      // DNA 色彩濾鏡：根據 hue 旋轉色相
+      const hueDeg=Math.round((dna.hue||0)*360);
+      ctx.filter=`hue-rotate(${hueDeg}deg) saturate(${Math.round((dna.sat||0.7)*100)}%) brightness(${Math.round((dna.val||0.6)*100)}%)`;
       ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight,
                     -size/2, -size/2+bobY, size, size);
+      ctx.filter='none';
       ctx.scale(facing,1);
     } else {
-      ctx.fillStyle='#888';
-      ctx.beginPath(); ctx.arc(0,0,e.r,0,Math.PI*2); ctx.fill();
+      // fallback：顯示 DNA 基礎色
+      ctx.fillStyle=dna.baseColor ? rgbStr(dna.baseColor) : '#888';
+      ctx.beginPath(); ctx.arc(0,0,e.r*(dna.bodyScale||1),0,Math.PI*2); ctx.fill();
     }
 
-    // 元素附著光環
+    // DNA 基礎色光環（敵人自帶外觀光環）
+    if (dna.baseColor){
+      ctx.strokeStyle=rgbStr(dna.baseColor); ctx.lineWidth=1.5;
+      ctx.globalAlpha=0.35+0.15*Math.sin(gameTime*3+(dna.hue||0)*10);
+      ctx.shadowColor=rgbStr(dna.baseColor); ctx.shadowBlur=8;
+      ctx.beginPath(); ctx.arc(0,0,e.r+6+Math.sin(gameTime*4)*2,0,Math.PI*2); ctx.stroke();
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+    }
+
+    // 元素附著光環（疊加在 DNA 光環之上）
     if (e.aura){
-      ctx.strokeStyle=EL_COLOR[e.aura]; ctx.lineWidth=2;
+      ctx.strokeStyle=EL_COLOR[e.aura]; ctx.lineWidth=2.5;
       ctx.globalAlpha=0.8+0.2*Math.sin(gameTime*8);
+      ctx.shadowColor=EL_COLOR[e.aura]; ctx.shadowBlur=12;
       ctx.beginPath(); ctx.arc(0,0,e.r+4+Math.sin(gameTime*8)*2,0,Math.PI*2); ctx.stroke();
-      ctx.globalAlpha=1;
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
 
     ctx.restore();
 
-    // HP bar
-    ctx.fillStyle='#000a'; ctx.fillRect(s.x-22,s.y-e.r-16,44,4);
-    ctx.fillStyle='#e14b4b'; ctx.fillRect(s.x-22,s.y-e.r-16,44*(e.hp/e.maxHp),4);
+    // HP bar（隨敵人大小調整位置）
+    const hpBarY = s.y - (e.r*(dna.bodyScale||1)) - 16;
+    ctx.fillStyle='#000a'; ctx.fillRect(s.x-22,hpBarY,44,4);
+    ctx.fillStyle='#e14b4b'; ctx.fillRect(s.x-22,hpBarY,44*(e.hp/e.maxHp),4);
     ctx.font='11px sans-serif'; ctx.fillStyle='#fff';
     ctx.textAlign='center';
-    ctx.fillText(e.type.name, s.x, s.y-e.r-20);
+    ctx.fillText(e.type.name, s.x, hpBarY-4);
 
     // 鎖定目標框
     if (player.target===e){
       ctx.strokeStyle='#ffd97e'; ctx.lineWidth=2;
       ctx.globalAlpha=0.7+0.3*Math.sin(gameTime*6);
-      const r=e.r+10;
+      const r=(e.r*(dna.bodyScale||1))+12;
       // 十字準星
       ctx.beginPath();
       ctx.moveTo(s.x-r-6, s.y); ctx.lineTo(s.x-r+4, s.y);
@@ -823,9 +869,32 @@ function loop(now){
   lastTime=now;
   if (!gameOver){
     updatePlayer(dt); updateEnemies(dt); updateCrystals(dt); updateEffects(dt);
-    spawnTimer-=dt;
-    if (spawnTimer<=0 && enemies.filter(e=>e.hp>0).length<3 && kills<KILL_GOAL){
-      spawnEnemy(); spawnTimer=2.5;
+
+    // 波次結算
+    if (isWaveClear){
+      waveClearTimer-=dt;
+      if (waveClearTimer<=0){
+        wave++;
+        waveKills=0;
+        waveKillsGoal=KILL_GOAL+wave*2;
+        isWaveClear=false;
+        player.hp=Math.min(player.maxHp, player.hp+player.maxHp*0.3);
+        showLog(`第 ${wave} 波來襲！消滅 ${waveKillsGoal} 隻`, true);
+        playTone(400, 0.2, 'square', 0.1);
+      }
+    } else {
+      spawnTimer-=dt;
+      const alive=enemies.filter(e=>e.hp>0).length;
+      const maxEnemies=Math.min(3+Math.floor(wave/2),6);
+      if (spawnTimer<=0 && alive<maxEnemies){
+        spawnEnemy(); spawnTimer=Math.max(1.0, 2.5-wave*0.15);
+      }
+      if (alive===0 && waveKills>=waveKillsGoal){
+        isWaveClear=true; waveClearTimer=3;
+        showLog(`第 ${wave} 波 Clear！`, true);
+        playTone(600, 0.3, 'triangle', 0.15);
+        effects.push({kind:'burstRing', x:player.x, y:player.y, life:0.8, max:0.8});
+      }
     }
     gameTime+=dt;
   }
@@ -848,7 +917,14 @@ function drawHUD(){
       ? 'linear-gradient(90deg,#ffd97e,#ff9e3b)'
       : 'linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0)';
   }
-  hud('kills', kills); hud('killGoal', KILL_GOAL);
+  hud('kills', waveKills); hud('killGoal', waveKillsGoal);
+  // 波次顯示
+  const waveEl=document.getElementById('waveLabel');
+  if (waveEl) waveEl.textContent=`第 ${wave} 波`;
+  const waveProgressEl=document.getElementById('waveProgress');
+  if (waveProgressEl){
+    waveProgressEl.style.width=Math.min(100, waveKills/waveKillsGoal*100)+'%';
+  }
 
   // 角色名稱
   const slot=PARTY[player.partyIndex];
@@ -963,7 +1039,7 @@ canvas.addEventListener('touchend', ()=>{ touchStart=null; player.moving=false; 
 
 // 初始生成
 spawnEnemy(); spawnEnemy(); spawnEnemy();
-showLog('消滅 6 隻敵人！F 切換角色 / 1-2-3 切元素 / E 戰技 / Q 絕招', true);
+showLog(`第 1 波：消滅 ${waveKillsGoal} 隻！Tab 鎖定 / F 切換角色`, true);
 
 // ---- 結算 ----
 function endGame(win){
@@ -971,7 +1047,8 @@ function endGame(win){
   document.getElementById('resultTitle').textContent=win?'勝利！':'戰敗…';
   document.getElementById('result').style.display='flex';
   document.getElementById('resultStats').innerHTML=
-    `<div style="margin-top:16px;font-size:15px;color:#aaa">击杀：${kills} / ${KILL_GOAL}</div>`;
+    `<div style="margin-top:16px;font-size:15px;color:#aaa">到達波次：第 ${wave} 波</div>
+     <div style="font-size:13px;color:#888">總擊殺：${kills}</div>`;
   playTone(win?600:150, 1.2, 'triangle', 0.2);
 }
 
