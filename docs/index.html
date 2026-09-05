@@ -153,50 +153,47 @@
     <div class="ctrl-hint"><kbd>Tab</kbd> 鎖定</div>
   </div>
 
-  <!-- 手機虛擬搖桿 -->
-  <div id="mobile-controls">
-    <!-- 左：搖桿 + 元素 -->
-    <div style="display:flex;flex-direction:column;gap:8px;pointer-events:all">
-      <div style="display:flex;gap:6px">
-        <button class="btn-el el-fire-btn active" id="tel-fire" style="color:#fff">🔥</button>
-        <button class="btn-el el-ice-btn" id="tel-ice" style="color:#fff">❄️</button>
-        <button class="btn-el el-thunder-btn" id="tel-thunder" style="color:#fff">⚡</button>
-      </div>
-      <div id="joystick-zone">
-        <div id="joystick-base">
-          <div id="joystick-dir">
-            <span class="dir-u">▲</span>
-            <span class="dir-d">▼</span>
-            <span class="dir-l">◀</span>
-            <span class="dir-r">▶</span>
-          </div>
-          <div id="joystick-thumb"></div>
+</div><!-- end #hud -->
+
+<!-- 手機虛擬搖桿（放在 #hud 外面，脫離 pointer-events:none） -->
+<div id="mobile-controls">
+  <!-- 左：搖桿 + 元素 -->
+  <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+    <div style="display:flex;gap:8px">
+      <button class="btn-el el-fire-btn active" id="tel-fire" style="color:#fff;pointer-events:all">🔥</button>
+      <button class="btn-el el-ice-btn" id="tel-ice" style="color:#fff;pointer-events:all">❄️</button>
+      <button class="btn-el el-thunder-btn" id="tel-thunder" style="color:#fff;pointer-events:all">⚡</button>
+    </div>
+    <div id="joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-dir">
+          <span class="dir-u">▲</span>
+          <span class="dir-d">▼</span>
+          <span class="dir-l">◀</span>
+          <span class="dir-r">▶</span>
         </div>
+        <div id="joystick-thumb"></div>
       </div>
     </div>
+  </div>
 
-    <!-- 右：動作按鈕 -->
-    <div id="action-zone">
-      <div class="act-row">
-        <button class="btn-lock" id="tlock">🔒</button>
-      </div>
-      <div class="act-row">
-        <button class="btn-skill btn-e" id="tskill" style="position:relative">
-          E<span class="b-label">戰技</span>
-          <div class="cd-overlay" id="tskill-cd"></div>
-        </button>
-        <button class="btn-skill btn-q" id="tburst" style="position:relative">
-          Q<span class="b-label">絕招</span>
-          <div class="cd-overlay" id="tburst-cd"></div>
-        </button>
-        <button class="btn-skill btn-f" id="tswitch">
-          F<span class="b-label">切人</span>
-        </button>
-      </div>
-      <div class="act-row">
-        <button class="btn-dash" id="tdash">💨</button>
-        <button class="btn-attack" id="tattack">⚔️</button>
-      </div>
+  <!-- 右：動作按鈕 -->
+  <div id="action-zone">
+    <div class="act-row">
+      <button class="btn-lock" id="tlock" style="pointer-events:all">🔒</button>
+    </div>
+    <div class="act-row">
+      <button class="btn-skill btn-e" id="tskill" style="position:relative;pointer-events:all">
+        E<div class="cd-overlay" id="tskill-cd"></div>
+      </button>
+      <button class="btn-skill btn-q" id="tburst" style="position:relative;pointer-events:all">
+        Q<div class="cd-overlay" id="tburst-cd"></div>
+      </button>
+      <button class="btn-skill btn-f" id="tswitch" style="pointer-events:all">F</button>
+    </div>
+    <div class="act-row">
+      <button class="btn-dash" id="tdash" style="pointer-events:all">💨</button>
+      <button class="btn-attack" id="tattack" style="pointer-events:all">⚔️</button>
     </div>
   </div>
 </div>
@@ -444,6 +441,7 @@ canvas.addEventListener('touchend', ()=>touchStart=null);
 document.getElementById('startBtn').addEventListener('click', ()=>{
   document.getElementById('startScreen').style.display='none';
   started=true;
+  startBGM();
   spawnEnemy(); spawnEnemy(); spawnEnemy();
   showLog(`第 1 波：消滅 ${waveKillsGoal} 隻！`, true);
 });
@@ -861,6 +859,7 @@ function updateEnemies(dt){
     if (e.hp<=0){
       // 死亡
       kills++; waveKills++;
+      playEnemyDeathSound();
       spawnCrystal(e.mesh.position.x, e.mesh.position.z, e.aura||'fire');
       scene.remove(e.mesh);
       if (player.target===e) player.target=null;
@@ -869,6 +868,7 @@ function updateEnemies(dt){
         isWaveClear=true; waveClearTimer=3;
         showLog(`第 ${wave} 波 Clear！`, true);
         flashReaction('#ffd97e');
+        playWaveClearSound();
       }
       continue;
     }
@@ -1034,6 +1034,7 @@ function doDash(){
   clampPlayer();
   flashReaction('#ffffff');
   spawnParticles(player.x, player.z, 0.8, 0xffffff);
+  playTone(80, 0.1, 'sine', 0.08);
 }
 
 function doAttack(){
@@ -1065,8 +1066,10 @@ function doAttack(){
     player.energy=Math.min(player.energyMax, player.energy+10);
     spawnSlashEffect(EL_HEX[player.element]);
     screenShake(4);
+    playAttackSound(player.combo);
   } else {
     spawnSlashEffect(0x888888);
+    playTone(200, 0.05, 'square', 0.05);
   }
   updateHUD();
 }
@@ -1086,6 +1089,7 @@ function dealDamage(e, atk, elem, mult){
     showLog(`${EL_NAME[elem]} ⇄ ${e.aura?EL_NAME[e.aura]:''} ⇒ ${REACT_NAME[react]}`, true);
     flashReaction(EL_HEX[elem]);
     flashCrack(elem);
+    playReactionSound(react);
     if (react==='SUPERCONDUCT'){ e.defenseReduction=0.4; e.superconductT=8; }
     if (react==='OVERLOAD') screenShake(8);
     if (react==='MELT') screenShake(5);
@@ -1103,7 +1107,8 @@ function dealDamageToPlayer(dmg){
   player.hp-=dmg; player.iframes=0.5;
   totalDamageTaken+=dmg;
   screenShake(5);
-  if (player.hp<=0 && !gameOver) endGame(false);
+  playTone(150, 0.15, 'sawtooth', 0.15);
+  if (player.hp<=0 && !gameOver){ playTone(100, 0.8, 'sine', 0.2); endGame(false); }
   updateHUD();
 }
 
@@ -1156,6 +1161,7 @@ function doSkill(){
     screenShake(6);
   }
   player.energy=Math.min(player.energyMax, player.energy+15);
+  playSkillSound(player.element);
   updateHUD();
 }
 
@@ -1171,6 +1177,7 @@ function doBurst(){
   }
   showLog('『三相合一斬』！', true);
   spawnBurstRing();
+  playBurstSound();
   updateHUD();
 }
 
@@ -1191,6 +1198,7 @@ function doSwitch(){
   player.glowMesh.material.opacity = 0.5;
   spawnParticles(player.x, player.z, 1.5, slot.color);
   showLog(`${slot.name} 入場！`);
+  playSwitchSound(player.partyIndex);
   updateElementUI();
   updateHUD();
 }
@@ -1618,6 +1626,157 @@ function animate(time){
   renderer.render(scene, camera);
 }
 
+// ============================================================
+// 音效系統（Web Audio API）
+// ============================================================
+let _audioCtx = null;
+let _bgmGain = null;
+let _bgmStarted = false;
+
+function getAudio(){
+  if (!_audioCtx){
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+function playTone(freq, dur, type='sine', vol=0.12, delay=0){
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(vol, ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + dur + 0.01);
+  } catch(e){}
+}
+
+function playAttackSound(combo){
+  playTone(180 + combo*60, 0.06, 'square', 0.08);
+  playTone(220 + combo*80, 0.04, 'sawtooth', 0.05, 0.03);
+}
+
+function playHitSound(){
+  playTone(120, 0.15, 'sawtooth', 0.12);
+  playTone(80, 0.1, 'sine', 0.08, 0.05);
+}
+
+function playSkillSound(elem){
+  const freqs = { fire:[90,120], ice:[600,900], thunder:[2000,3000] };
+  const [a,b] = freqs[elem] || [200,300];
+  playTone(a, 0.2, 'sawtooth', 0.15);
+  playTone(b, 0.15, 'square', 0.1, 0.05);
+  playTone(a*2, 0.1, 'sine', 0.08, 0.1);
+}
+
+function playBurstSound(){
+  playTone(50, 0.7, 'sine', 0.25);
+  playTone(80, 0.5, 'sawtooth', 0.15, 0.05);
+  playTone(120, 0.4, 'square', 0.12, 0.1);
+  playTone(2000, 0.2, 'sine', 0.08, 0.15);
+}
+
+function playSwitchSound(slotIdx){
+  playTone(400 + slotIdx*120, 0.12, 'triangle', 0.1);
+  playTone(600 + slotIdx*150, 0.08, 'sine', 0.06, 0.08);
+}
+
+function playEnemyDeathSound(){
+  playTone(80, 0.3, 'sine', 0.15);
+  playTone(60, 0.25, 'sawtooth', 0.1, 0.1);
+}
+
+function playWaveClearSound(){
+  playTone(400, 0.2, 'triangle', 0.15);
+  playTone(600, 0.2, 'triangle', 0.12, 0.15);
+  playTone(800, 0.3, 'sine', 0.1, 0.3);
+}
+
+function playReactionSound(react){
+  const sounds = {
+    MELT:        [[300,0.15,'triangle'],[450,0.1,'sine']],
+    OVERLOAD:    [[150,0.2,'sawtooth'],[2000,0.1,'square']],
+    SUPERCONDUCT:[[200,0.25,'sine'],[500,0.15,'triangle']],
+    RESONANCE:   [[500,0.1,'sine'],[700,0.08,'sine']],
+  };
+  const s = sounds[react] || [];
+  s.forEach(([f,d,type],i)=>playTone(f,d,type,0.1,i*0.05));
+}
+
+// 背景音樂
+let _bgmInterval = null;
+function startBGM(){
+  if (_bgmStarted) return;
+  _bgmStarted = true;
+  try {
+    const ctx = getAudio();
+    _bgmGain = ctx.createGain();
+    _bgmGain.gain.setValueAtTime(0.04, ctx.currentTime);
+    _bgmGain.connect(ctx.destination);
+
+    // 和弦進行：C - Am - F - G（反覆）
+    const chordSeq = [
+      [130.81, 164.81, 196.00],  // C
+      [110.00, 130.81, 164.81],  // Am
+      [174.61, 220.00, 261.63], // F
+      [196.00, 246.94, 293.66],  // G
+    ];
+    const bassSeq = [65.41, 55.00, 87.31, 98.00]; // C2, A1, F2, G2
+
+    let step = 0;
+    function playChord(){
+      const chord = chordSeq[step % 4];
+      const bass = bassSeq[step % 4];
+      const now = ctx.currentTime;
+
+      // Bass
+      const bOsc = ctx.createOscillator();
+      const bGain = ctx.createGain();
+      bOsc.type = 'sine'; bOsc.frequency.value = bass;
+      bGain.gain.setValueAtTime(0.06, now);
+      bGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+      bOsc.connect(bGain); bGain.connect(_bgmGain);
+      bOsc.start(now); bOsc.stop(now + 1.9);
+
+      // Pad
+      chord.forEach((freq, i)=>{
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.025, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        o.connect(g); g.connect(_bgmGain);
+        o.start(now); o.stop(now + 2.1);
+      });
+
+      // Melody accent on beat 2
+      const melodyNotes = [261.63, 329.63, 392.00, 523.25];
+      const mOsc = ctx.createOscillator();
+      const mGain = ctx.createGain();
+      mOsc.type = 'sine';
+      mOsc.frequency.value = melodyNotes[step % 4];
+      mGain.gain.setValueAtTime(0.0, now);
+      mGain.gain.linearRampToValueAtTime(0.03, now + 0.1);
+      mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      mOsc.connect(mGain); mGain.connect(_bgmGain);
+      mOsc.start(now + 0.5); mOsc.stop(now + 0.9);
+
+      step++;
+    }
+
+    playChord();
+    _bgmInterval = setInterval(playChord, 2000);
+  } catch(e){ console.warn('BGM error:', e); }
+}
+
+function stopBGM(){
+  if (_bgmInterval){ clearInterval(_bgmInterval); _bgmInterval=null; }
+}
 // ============================================================
 // 初始化
 // ============================================================
