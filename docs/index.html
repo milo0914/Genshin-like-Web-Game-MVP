@@ -1385,11 +1385,14 @@ function updatePlayer(dt){
   if (keys['KeyA']){ mx-=1; mz+=0; }
   if (keys['KeyD']){ mx+=1; mz+=0; }
 
-  // 虛擬搖桿輸入
+  // 虛擬搖桿輸入：直接控制玩家朝向（ry）
   const joy = window.getJoystick ? window.getJoystick() : {x:0,y:0,active:false};
   if (joy.active){
+    if (Math.abs(joy.x) > 0.05 || Math.abs(joy.y) > 0.05) {
+      player.ry = Math.atan2(joy.x, -joy.y); // 搖桿角度 → 玩家朝向
+    }
     mx += joy.x;
-    mz -= joy.y; // joystick Y is inverted for 3D movement
+    mz += joy.y;
   }
   if (mx||mz){
     const len=Math.hypot(mx,mz); mx/=len; mz/=len;
