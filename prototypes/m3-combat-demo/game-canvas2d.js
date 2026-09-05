@@ -114,25 +114,39 @@ function flashCrack(element){
 }
 
 // ---- 敵人生成 ----
+// 元素弱點表（依 docs/enemies-design.md）
+const ELEMENTAL_WEAKNESS = {
+  rush:    'ice',      // 掠焰狼 — 冰弱
+  tank:    'ice',      // 巨石守衛 — 冰弱
+  caster:  'thunder',  // 火語術士 — 雷弱（超導）
+  archer:  'fire',     // 冰霜射手 — 火弱（融穿）
+  charger: 'thunder',  // 雷角巨獸 — 雷弱（過載）
+};
+
 function spawnEnemy(){
   const t = E_TYPES[Math.floor(Math.random()*E_TYPES.length)];
   const ang = Math.random()*Math.PI*2, d = rand(200, ARENA_R-30);
-  // DNA 隨機外觀（依 enemy-rng-spec.md）
+  // DNA 隨機外觀
   const hue = Math.random();
-  const sat = 0.5 + Math.random()*0.4;  // 0.5~0.9
-  const val = 0.4 + Math.random()*0.3;  // 0.4~0.7
-  const bodyScale = 0.88 + Math.random()*0.28; // 0.88~1.16（對應Slim~Bulky）
+  const sat = 0.5 + Math.random()*0.4;
+  const val = 0.4 + Math.random()*0.3;
+  const bodyScale = 0.88 + Math.random()*0.28;
   const baseColor = HSVtoRGB(hue, sat, val);
+  // 難度縮放：每波 +15% HP
+  const hpScale = 1 + (wave-1)*0.15;
+  const dmgScale = 1 + (wave-1)*0.08;
   enemies.push({
     type:t, x:Math.cos(ang)*d, y:Math.sin(ang)*d,
-    r:t.radius, hp:t.hp, maxHp:t.hp,
+    r:t.radius*(0.9+Math.random()*0.2),
+    hp:t.hp*hpScale, maxHp:t.hp*hpScale,
     attackCD:0, aura:null, auraT:0, defenseReduction:0,
     state:'idle', stateT:0, vx:0, vy:0,
     hurtT:0, walkT:0, teleT:0,
     superconductT:0,
     knockbackT:0, knockbackVX:0, knockbackVY:0,
-    // DNA
     dna: { hue, sat, val, bodyScale, baseColor },
+    weakness: ELEMENTAL_WEAKNESS[t.behavior] || 'fire',
+    dmgScale,
   });
 }
 
@@ -382,7 +396,7 @@ function updateEnemies(dt){
         e.attackCD=t.cd;
         e.state='casting'; e.stateT=0.8;
         projectiles.push({x:e.x, y:e.y, dx:Math.cos(ang), dy:Math.sin(ang),
-                          spd:280, r:6, life:3, color:EL_COLOR[t.proj], type:t.proj, dmg:t.dmg});
+                          spd:280, r:6, life:3, color:EL_COLOR[t.proj], type:t.proj, dmg:t.dmg*(e.dmgScale||1)});
         playTone(400, 0.1, 'square', 0.06);
       }
     } else if (t.behavior==='charger'){
@@ -394,7 +408,7 @@ function updateEnemies(dt){
         e.stateT-=dt;
         e.x+=e.vx*dt; e.y+=e.vy*dt;
         if (e.stateT<=0) e.state='idle';
-        if (d<e.r+player.r && player.iframes<=0){ hitPlayer(t.dmg); e.state='idle'; }
+        if (d<e.r+player.r && player.iframes<=0){ hitPlayer(t.dmg*(e.dmgScale||1)); e.state='idle'; }
       } else if (d<t.range+40 && e.attackCD<=0){
         e.attackCD=t.cd; e.state='charging'; e.stateT=1.0; e.teleT=0;
       } else if (d>t.range){
@@ -413,14 +427,14 @@ function updateEnemies(dt){
       if (e.stateT<=0){
         const wasCasting=e.state==='casting';
         e.state='idle';
-        if (dist(player,e)<t.range*1.2 && player.iframes<=0) hitPlayer(t.dmg);
+        if (dist(player,e)<t.range*1.2 && player.iframes<=0) hitPlayer(t.dmg*(e.dmgScale||1));
       }
     }
     if (e.state==='lunge'){
       e.stateT-=dt;
       e.x+=e.vx*dt; e.y+=e.vy*dt;
       if (e.stateT<=0) e.state='idle';
-      if (dist(player,e)<e.r+player.r && player.iframes<=0) hitPlayer(t.dmg);
+      if (dist(player,e)<e.r+player.r && player.iframes<=0) hitPlayer(t.dmg*(e.dmgScale||1));
     }
 
     // Knockback
@@ -764,6 +778,19 @@ function drawEnemies(){
 
     ctx.restore();
 
+    // 弱點元素水晶標記（敵人腳下小菱形）
+    const weakEl = e.weakness||'fire';
+    const weakColor = EL_COLOR[weakEl];
+    const weakPulse = 0.7+0.3*Math.sin(gameTime*4);
+    ctx.save();
+    ctx.fillStyle=weakColor;
+    ctx.globalAlpha=0.6*weakPulse;
+    ctx.shadowColor=weakColor; ctx.shadowBlur=6;
+    ctx.translate(s.x, s.y+e.r*(dna.bodyScale||1)+8);
+    ctx.rotate(Math.PI/4);
+    ctx.fillRect(-4,-4,8,8);
+    ctx.restore();
+
     // HP bar（隨敵人大小調整位置）
     const hpBarY = s.y - (e.r*(dna.bodyScale||1)) - 16;
     ctx.fillStyle='#000a'; ctx.fillRect(s.x-22,hpBarY,44,4);
@@ -962,6 +989,13 @@ function drawHUD(){
     const lockMark=player.target===displayTarget ? '🔒 ' : '';
     hud('ename', lockMark+displayTarget.type.name);
     hud('aura', displayTarget.aura?EL_NAME[displayTarget.aura]:'無');
+    // 弱點提示
+    const weakEl=document.getElementById('weakness');
+    if (weakEl){
+      const w=displayTarget.weakness||'fire';
+      weakEl.textContent=`弱點：${EL_NAME[w]} ${EL_COLOR[w]?'●':''}`;
+      weakEl.style.color=EL_COLOR[w]||'#aaa';
+    }
     document.querySelectorAll('#superconduct').forEach(el=>{
       if (displayTarget.superconductT>0){
         el.style.display='';
