@@ -119,6 +119,7 @@ function spawnEnemy(){
     state:'idle', stateT:0, vx:0, vy:0,
     hurtT:0, walkT:0, teleT:0,
     superconductT:0,
+    knockbackT:0, knockbackVX:0, knockbackVY:0,
   });
 }
 
@@ -282,6 +283,12 @@ function dealDamage(t, atk, elem, mult){
   dmgText.push({text:Math.round(dmg), x:t.x+rand(-6,6), y:t.y-t.r-4,
                 color:crit?'#ffd700':'#fff', life:0.9, crit});
 
+  // Knockback
+  const kbAngle=Math.atan2(t.y-player.y, t.x-player.x);
+  t.knockbackVX=Math.cos(kbAngle);
+  t.knockbackVY=Math.sin(kbAngle);
+  t.knockbackT=0.3;
+
   for (let i=0;i<6;i++){
     effects.push({kind:'particle', x:t.x, y:t.y,
                    vx:rand(-120,120), vy:rand(-180,-40),
@@ -290,11 +297,11 @@ function dealDamage(t, atk, elem, mult){
 
   if (t.hp<=0){
     kills++;
-    // 結晶掉落（補充能量 10%）
     spawnCrystal(t.x, t.y, elem);
     effects.push({kind:'death', x:t.x, y:t.y, color:EL_COLOR[elem]||'#fff', life:0.6, max:0.6, r:t.r});
     screenShake(6); hitStopDo(0.12);
     playTone(80, 0.3, 'sine', 0.3);
+    if (player.target===t) player.target=null;
     if (kills>=KILL_GOAL && !gameOver) endGame(true);
   }
 }
@@ -322,6 +329,7 @@ function updateEnemies(dt){
       if (e.superconductT<=0){ e.defenseReduction=0; }
     }
     if (e.hurtT>0) e.hurtT-=dt;
+    if (e.knockbackT>0){ e.knockbackT-=dt; }
     e.walkT+=dt*6;
 
     const d=dist(player,e);
@@ -343,9 +351,10 @@ function updateEnemies(dt){
       else if (d>200){ e.x+=Math.cos(ang)*t.speed*dt; e.y+=Math.sin(ang)*t.speed*dt; }
       if (e.attackCD<=0 && d<t.range){
         e.attackCD=t.cd;
-        e.state='casting'; e.stateT=0.8; // 施法前搖
+        e.state='casting'; e.stateT=0.8;
         projectiles.push({x:e.x, y:e.y, dx:Math.cos(ang), dy:Math.sin(ang),
                           spd:280, r:6, life:3, color:EL_COLOR[t.proj], type:t.proj, dmg:t.dmg});
+        playTone(400, 0.1, 'square', 0.06);
       }
     } else if (t.behavior==='charger'){
       if (e.state==='charging'){
@@ -366,18 +375,16 @@ function updateEnemies(dt){
 
     if (e.state==='windup' || e.state==='casting'){
       e.stateT-=dt;
-      // 施法中斷邏輯
       if (e.state==='casting' && player.castInterruptCD<=0 && e.stateT>0.2 && e.hurtT>0){
-        // 在施法前搖中被攻擊，中斷施法
-        e.state='idle'; e.attackCD=t.cd*0.5; // 中斷後較快再次行動
+        e.state='idle'; e.attackCD=t.cd*0.5;
         showLog(`⚡ 施法中斷！`);
         playTone(200, 0.15, 'square', 0.1);
         player.castInterruptCD=0.5;
       }
       if (e.stateT<=0){
+        const wasCasting=e.state==='casting';
         e.state='idle';
         if (dist(player,e)<t.range*1.2 && player.iframes<=0) hitPlayer(t.dmg);
-        if (e.state==='casting'){ /* 法術已通過 projectiles 發射 */ }
       }
     }
     if (e.state==='lunge'){
@@ -385,6 +392,12 @@ function updateEnemies(dt){
       e.x+=e.vx*dt; e.y+=e.vy*dt;
       if (e.stateT<=0) e.state='idle';
       if (dist(player,e)<e.r+player.r && player.iframes<=0) hitPlayer(t.dmg);
+    }
+
+    // Knockback
+    if (e.knockbackT>0){
+      e.x+=e.knockbackVX*e.knockbackT*dt*8;
+      e.y+=e.knockbackVY*e.knockbackT*dt*8;
     }
 
     const dc=Math.hypot(e.x, e.y);
@@ -530,6 +543,18 @@ function drawArena(){
     ctx.fillStyle='#2a3248';
     ctx.fillRect(px-5,py-16,10,32);
   }
+
+  // 競技場邊界警告（玩家靠近邊緣時紅色漸層）
+  const playerDist=Math.hypot(player.x, player.y);
+  const edgeRatio=playerDist/(ARENA_R-player.r);
+  if (edgeRatio>0.7){
+    const intensity=(edgeRatio-0.7)/0.3;
+    const vignette=ctx.createRadialGradient(cx,cy,ARENA_R*0.6, cx,cy,ARENA_R*1.2);
+    vignette.addColorStop(0,'rgba(255,0,0,0)');
+    vignette.addColorStop(1,`rgba(200,0,0,${intensity*0.35})`);
+    ctx.fillStyle=vignette;
+    ctx.fillRect(0,0,W,H);
+  }
 }
 
 // ---- 繪製：結晶 ----
@@ -613,6 +638,17 @@ function drawPlayer(){
     ctx.strokeStyle=col; ctx.lineWidth=6; ctx.globalAlpha=1-t;
     ctx.shadowBlur=20; ctx.shadowColor=col;
     ctx.beginPath(); ctx.arc(0,0,30+t*30,-Math.PI/3,Math.PI/3); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Combo計數（高於1時顯示）
+  if (player.combo>0 && player.attackCD<=0.25){
+    const comboAlpha=Math.min(1, player.attackCD<=0?1:player.attackCD/0.25);
+    ctx.save();
+    ctx.font='bold 16px sans-serif'; ctx.textAlign='center';
+    ctx.globalAlpha=comboAlpha*0.9;
+    ctx.fillStyle='#ffd97e'; ctx.shadowColor='#d64e2b'; ctx.shadowBlur=10;
+    ctx.fillText(`×${player.combo+1}`, 0, -player.r-18);
     ctx.restore();
   }
 
