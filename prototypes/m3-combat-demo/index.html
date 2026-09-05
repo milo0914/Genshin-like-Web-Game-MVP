@@ -2,72 +2,100 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<title>元素競技場 — Three.js 可玩 Demo</title>
+<title>元素競技場 M3 — 可玩 Demo</title>
 <style>
   body{margin:0;background:#0a0d18;color:#cfddf6;font-family:"Noto Sans TC",sans-serif;overflow:hidden}
   #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:14px 18px;pointer-events:none;z-index:10;text-shadow:0 1px 3px #000}
-  .panel{background:rgba(10,14,25,0.6);border:1px solid #2a3864;border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px)}
-  .hp{background:#2a1217;border:1px solid #5c2430;width:220px;height:14px;border-radius:4px;position:relative}
+  .panel{background:rgba(10,14,25,0.7);border:1px solid #2a3864;border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);min-width:180px}
+  .hp{background:#2a1217;border:1px solid #5c2430;width:200px;height:14px;border-radius:4px;position:relative;margin-top:4px}
   .hp>i{position:absolute;inset:0;background:linear-gradient(90deg,#e14b4b,#7e3b3b);border-radius:4px;transition:width 0.15s}
-  .label{font-size:11px;opacity:0.7;margin-bottom:4px}
-  #energy .fill{background:linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0);height:6px;border-radius:3px;transition:width 0.2s}
-  #log{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;font-size:14px;text-shadow:0 1px 3px #000}
-  #controls{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(15,20,40,0.7);padding:8px 14px;border-radius:20px;font-size:12px;border:1px solid #2a3864;pointer-events:none}
-  #controls span{margin:0 6px;opacity:0.9}
-  .element-pill{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:4px;border:2px solid #fff;opacity:0.5}
-  .element-pill.active{opacity:1;transform:scale(1.2)}
-  #result{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:20;text-align:center}
-  #result h1{font-size:60px}
-  #result button{padding:12px 30px;font-size:18px;background:#35497e;color:#e8ecf5;border:none;border-radius:6px;cursor:pointer}
+  .label{font-size:11px;opacity:0.7;margin-bottom:4px;margin-top:8px}
+  .label:first-child{margin-top:0}
+  #energy .fill{background:linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0);height:6px;border-radius:3px;transition:width 0.2s;margin-top:4px}
+  #energy-bar{background:#1a1a2e;border:1px solid #2a3864;width:200px;height:8px;border-radius:4px;position:relative;overflow:hidden;margin-top:4px}
+  #energy-bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0);transition:width 0.2s;border-radius:4px}
+  .element-pill{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:5px;border:2px solid #fff;opacity:0.4;transition:all 0.15s}
+  .element-pill.active{opacity:1;transform:scale(1.3);box-shadow:0 0 8px currentColor}
+  .party-slot{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;margin-right:4px;opacity:0.5;border:1px solid #333;transition:all 0.2s}
+  .party-slot.active{opacity:1;border-color:#66e0b0;background:rgba(102,224,176,0.15)}
+  #switchCD{font-size:11px;margin-left:6px;opacity:0.7;transition:color 0.2s}
+  #superconduct{font-size:10px;color:#c87fff;display:none;margin-top:3px;padding:2px 6px;background:rgba(100,50,150,0.3);border-radius:4px}
+  #log{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;font-size:14px;text-shadow:0 1px 3px #000;z-index:15}
+  #controls{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(15,20,40,0.75);padding:8px 16px;border-radius:20px;font-size:12px;border:1px solid #2a3864;pointer-events:none;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:90vw}
+  #controls span{background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px}
   .big{font-size:26px;color:#ffd97e;text-shadow:0 0 18px #d64e2b}
-  #aim{position:fixed;left:50%;top:50%;width:8px;height:8px;border:2px solid #fff5;border-radius:50%;margin:-5px;pointer-events:none;display:none}
+  #result{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.88);z-index:20;text-align:center}
+  #result h1{font-size:64px;margin:0 0 10px}
+  #result p{margin:8px 0;font-size:16px;opacity:0.7}
+  #result button{padding:12px 30px;font-size:18px;background:#35497e;color:#e8ecf5;border:none;border-radius:6px;cursor:pointer;margin-top:16px}
+  #result button:hover{background:#4a62b0}
   #arena{position:fixed;inset:0;display:block}
 </style>
 </head>
 <body>
-<div id="aim"></div>
 <canvas id="arena"></canvas>
 <div id="hud">
   <div class="panel">
-    <div class="label">黎恩 Rein</div>
+    <!-- 角色名稱 + 職業 -->
+    <div class="label">當前角色</div>
+    <div style="font-size:15px;font-weight:bold;color:#66e0b0" id="charName">黎恩 黎</div>
+
+    <!-- HP -->
+    <div class="label">生命值</div>
     <div class="hp"><i id="hp"></i></div>
-    <div class="label" style="margin-top:10px">絕招能量</div>
-    <div id="energy"><div class="fill" style="width:0%"></div></div>
-    <div class="label" style="margin-top:10px">元素形式</div>
+
+    <!-- 能量條 -->
+    <div class="label">絕招能量</div>
+    <div id="energy-bar"><i></i></div>
+
+    <!-- 當前元素 -->
+    <div class="label">元素形態</div>
     <div>
-      <span class="element-pill" data-el="1" style="background:#d64e2b"></span>
-      <span class="element-pill" data-el="2" style="background:#6fc7e8"></span>
-      <span class="element-pill" data-el="3" style="background:#8a5be0"></span>
+      <span class="element-pill active" data-el="fire"    style="background:#d64e2b"></span>
+      <span class="element-pill"         data-el="ice"     style="background:#6fc7e8"></span>
+      <span class="element-pill"         data-el="thunder" style="background:#8a5be0"></span>
     </div>
-    <div class="label" style="margin-top:10px">切換隊友</div>
+
+    <!-- 隊伍槽位 -->
+    <div class="label">隊伍 <span id="switchCD">就緒</span></div>
     <div>
-      <span class="element-pill" data-el="f1" style="background:#66e0b0"></span>
-      <span class="element-pill" data-el="f2" style="background:#f5d76e"></span>
-      <span class="element-pill" data-el="f3" style="background:#ff9ecb"></span>
+      <span class="party-slot active" id="slot0">黎恩</span>
+      <span class="party-slot" id="slot1">焰</span>
+      <span class="party-slot" id="slot2">霜</span>
+      <span class="party-slot" id="slot3">雷</span>
     </div>
+
+    <!-- 超導減防 -->
+    <div id="superconduct">⚡ 防禦 -40%</div>
   </div>
+
   <div class="panel" style="text-align:right">
-    <div class="label">敵人</div>
+    <div class="label">目標敵人</div>
     <div class="hp" style="margin-left:auto"><i id="ehp"></i></div>
-    <div class="label" id="ename">-</div>
-    <div class="label">元素附著 <span id="aura">無</span></div>
-    <div class="label">剩餘敵人 <span id="kills">0</span> / <span id="killGoal">6</span></div>
+    <div class="label" id="ename" style="font-size:13px;font-weight:bold">—</div>
+    <div class="label">元素附著：<span id="aura" style="color:#aaa">無</span></div>
+    <div id="superconduct" style="display:none;color:#c87fff;font-size:10px;margin-top:3px">⚡ 防禦 -40%</div>
+    <div class="label" style="margin-top:12px;font-size:13px">擊殺 <span id="kills" style="color:#ffd97e;font-size:16px">0</span> / <span id="killGoal">6</span></div>
   </div>
 </div>
+
 <div id="log"></div>
+
 <div id="controls">
-  移動 <span>WASD</span>
-  衝刺 <span>Space</span>
-  普攻 <span>左鍵</span>
-  元素 <span>1 火 / 2 冰 / 3 雷</span>
-  戰技 <span>E</span>
-  絕招 <span>Q</span>
-  切換隊友 <span>F / 4-6</span>
+  <span>WASD 移動</span>
+  <span>Space 衝刺</span>
+  <span>左鍵 普攻</span>
+  <span>1 火 / 2 冰 / 3 雷</span>
+  <span>E 元素戰技</span>
+  <span>Q 絕招</span>
+  <span>F 切換角色</span>
 </div>
+
 <div id="result">
   <div>
     <h1 id="resultTitle">勝利！</h1>
     <p id="resultSub">你已完成競技場試煉</p>
+    <div id="resultStats" style="font-size:15px;color:#aaa;margin-top:8px"></div>
     <button onclick="location.reload()">再來一局</button>
   </div>
 </div>
