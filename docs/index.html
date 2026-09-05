@@ -94,15 +94,14 @@
   /* 顯示控制 */
   #mobile-controls{display:flex}
 
-  @media (min-width:901px) and (pointer:fine){
+  /* 預設：顯示所有控制項（調試用） */
+  #mobile-controls{display:flex !important}
+  #joystick-zone,#action-zone{display:flex !important}
+
+  /* 桌面：隱藏觸控控制 */
+  @media (hover:hover) and (pointer:fine){
     #mobile-controls{display:none !important}
     #joystick-zone,#action-zone{display:none !important}
-    #bottom-hud{display:none !important}
-  }
-
-  @media (max-width:900px),(pointer:coarse){
-    #mobile-controls{display:flex !important}
-    #joystick-zone,#action-zone{display:flex !important}
   }
 </style>
 </head>
