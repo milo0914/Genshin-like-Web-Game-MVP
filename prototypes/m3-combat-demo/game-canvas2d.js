@@ -80,6 +80,8 @@ let waveKills=0;                   // 本波擊殺數
 let waveKillsGoal=KILL_GOAL;       // 本波目標
 let waveClearTimer=0;              // 波次間隔計時
 let isWaveClear=false;
+let totalDamageDealt=0;            // 累計總傷害
+let totalDamageTaken=0;            // 累計受到傷害
 
 // ---- 工具函式 ----
 function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
@@ -307,6 +309,7 @@ function dealDamage(t, atk, elem, mult){
   const defMult=1-(t.defenseReduction||0);
   const dmg=atk*mult*rm*cm*defMult*0.9;
   t.hp-=dmg;
+  totalDamageDealt+=dmg;
   t.aura=elem; t.auraT=5;
   t.hurtT=0.15;
 
@@ -459,6 +462,7 @@ function updateEnemies(dt){
 
 function hitPlayer(dmg){
   player.hp-=dmg; player.hurtFlash=0.25;
+  totalDamageTaken+=dmg;
   screenShake(5);
   playTone(150, 0.15, 'sawtooth', 0.2);
   if (player.hp<=0 && !gameOver) endGame(false);
@@ -886,6 +890,23 @@ function drawEffects(){
     ctx.strokeText(t.text,s.x,s.y); ctx.fillText(t.text,s.x,s.y);
     ctx.globalAlpha=1;
   });
+
+  // 波次結算大字
+  if (isWaveClear){
+    const t=waveClearTimer/3;
+    ctx.save();
+    ctx.font=`bold ${Math.round(36+t*10)}px sans-serif`;
+    ctx.textAlign='center';
+    ctx.globalAlpha=Math.min(1, t*2);
+    ctx.fillStyle='#ffd97e';
+    ctx.shadowColor='#d64e2b'; ctx.shadowBlur=20;
+    ctx.fillText(`第 ${wave} 波 Clear！`, W/2, H/2-40);
+    ctx.font='16px sans-serif';
+    ctx.fillStyle='#aaa';
+    ctx.shadowBlur=0;
+    ctx.fillText(`下一波 ${wave+1} 即將來襲…`, W/2, H/2);
+    ctx.restore();
+  }
 }
 
 // ---- 主循環 ----
@@ -1082,7 +1103,8 @@ function endGame(win){
   document.getElementById('result').style.display='flex';
   document.getElementById('resultStats').innerHTML=
     `<div style="margin-top:16px;font-size:15px;color:#aaa">到達波次：第 ${wave} 波</div>
-     <div style="font-size:13px;color:#888">總擊殺：${kills}</div>`;
+     <div style="font-size:13px;color:#888">總擊殺：${kills} &nbsp;|&nbsp; 總傷害：${Math.round(totalDamageDealt)}</div>
+     <div style="font-size:12px;color:#666">受到傷害：${Math.round(totalDamageTaken)}</div>`;
   playTone(win?600:150, 1.2, 'triangle', 0.2);
 }
 

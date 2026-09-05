@@ -110,6 +110,26 @@
   </div>
 </div>
 
+<!-- 開場覆蓋層 -->
+<div id="startScreen" style="position:fixed;inset:0;background:rgba(5,8,20,0.95);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+  <div style="font-size:52px;font-weight:bold;color:#ffd97e;text-shadow:0 0 30px #d64e2b;margin-bottom:8px">元素競技場</div>
+  <div style="font-size:16px;color:#6fc7e8;margin-bottom:40px;letter-spacing:4px">ARENA OF ELEMENTS</div>
+  <div style="font-size:13px;color:#aaa;line-height:2;margin-bottom:40px">
+    <div>🔥 融穿　⚡ 過載　❄️ 超導</div>
+    <div>4 人隊伍切換　三元素反應系統</div>
+  </div>
+  <button id="startBtn" onclick="
+    document.getElementById('startScreen').style.display='none';
+    // 首次互動解鎖音頻
+    try { if(audioCtx) audioCtx.resume(); } catch(e){}
+  " style="padding:14px 50px;font-size:20px;background:linear-gradient(135deg,#35497e,#4a62b0);color:#e8ecf5;border:none;border-radius:8px;cursor:pointer;box-shadow:0 4px 20px rgba(53,73,126,0.5);transition:all 0.2s" onmouseover='this.style.transform="scale(1.05)"' onmouseout='this.style.transform="scale(1)"'>開始挑戰</button>
+  <div style="margin-top:30px;font-size:12px;color:#555;line-height:2">
+    <div>WASD 移動　Space 衝刺　左鍵 普攻</div>
+    <div>1/2/3 切換元素　E 戰技　Q 絕招</div>
+    <div>F 切換角色　Tab 鎖定敵人</div>
+  </div>
+</div>
+
 <script src="game-canvas2d.js"></script>
 </body>
 </html>
