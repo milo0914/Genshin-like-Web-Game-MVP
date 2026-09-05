@@ -53,6 +53,8 @@ const player = {
   switchCD:0,            // 切人冷卻
   switchAnimT:0,         // 入場動畫計時
   prevIndex:0,
+  target:null,           // 鎖定目標
+  castInterruptCD:0,      // 施法中斷冷卻
 };
 
 // ---- 敵人 ----
@@ -309,6 +311,8 @@ function spawnCrystal(x, y, elem){
 
 // ---- 敵人 Update ----
 function updateEnemies(dt){
+  if (player.castInterruptCD>0) player.castInterruptCD-=dt;
+
   for (const e of enemies){
     if (e.hp<=0) continue;
     e.attackCD-=dt;
@@ -339,9 +343,9 @@ function updateEnemies(dt){
       else if (d>200){ e.x+=Math.cos(ang)*t.speed*dt; e.y+=Math.sin(ang)*t.speed*dt; }
       if (e.attackCD<=0 && d<t.range){
         e.attackCD=t.cd;
+        e.state='casting'; e.stateT=0.8; // 施法前搖
         projectiles.push({x:e.x, y:e.y, dx:Math.cos(ang), dy:Math.sin(ang),
                           spd:280, r:6, life:3, color:EL_COLOR[t.proj], type:t.proj, dmg:t.dmg});
-        playTone(400, 0.1, 'square', 0.06);
       }
     } else if (t.behavior==='charger'){
       if (e.state==='charging'){
@@ -360,11 +364,20 @@ function updateEnemies(dt){
       }
     }
 
-    if (e.state==='windup'){
+    if (e.state==='windup' || e.state==='casting'){
       e.stateT-=dt;
+      // 施法中斷邏輯
+      if (e.state==='casting' && player.castInterruptCD<=0 && e.stateT>0.2 && e.hurtT>0){
+        // 在施法前搖中被攻擊，中斷施法
+        e.state='idle'; e.attackCD=t.cd*0.5; // 中斷後較快再次行動
+        showLog(`⚡ 施法中斷！`);
+        playTone(200, 0.15, 'square', 0.1);
+        player.castInterruptCD=0.5;
+      }
       if (e.stateT<=0){
         e.state='idle';
         if (dist(player,e)<t.range*1.2 && player.iframes<=0) hitPlayer(t.dmg);
+        if (e.state==='casting'){ /* 法術已通過 projectiles 發射 */ }
       }
     }
     if (e.state==='lunge'){
@@ -621,6 +634,15 @@ function drawEnemies(){
       ctx.globalAlpha=1;
     }
 
+    // 施法前搖（法師/弓箭手）
+    if (e.state==='casting'){
+      const progress=1-(e.stateT/0.8);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+      ctx.globalAlpha=0.4+0.5*Math.sin(gameTime*12);
+      ctx.beginPath(); ctx.arc(0,-e.r-12,8,0,Math.PI*2*progress); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+
     // 超導減防視覺（紫圈）
     if (e.superconductT>0){
       ctx.strokeStyle='#c87fff'; ctx.lineWidth=2;
@@ -667,6 +689,22 @@ function drawEnemies(){
     ctx.font='11px sans-serif'; ctx.fillStyle='#fff';
     ctx.textAlign='center';
     ctx.fillText(e.type.name, s.x, s.y-e.r-20);
+
+    // 鎖定目標框
+    if (player.target===e){
+      ctx.strokeStyle='#ffd97e'; ctx.lineWidth=2;
+      ctx.globalAlpha=0.7+0.3*Math.sin(gameTime*6);
+      const r=e.r+10;
+      // 十字準星
+      ctx.beginPath();
+      ctx.moveTo(s.x-r-6, s.y); ctx.lineTo(s.x-r+4, s.y);
+      ctx.moveTo(s.x+r+6, s.y); ctx.lineTo(s.x+r-4, s.y);
+      ctx.moveTo(s.x, s.y-r-6); ctx.lineTo(s.x, s.y-r+4);
+      ctx.moveTo(s.x, s.y+r+6); ctx.lineTo(s.x, s.y+r-4);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(s.x,s.y,r+6,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
   }
 }
 
@@ -764,9 +802,16 @@ function loop(now){
 // ---- HUD 繪製（疊加在網頁 HUD 上）----
 function drawHUD(){
   document.getElementById('hp').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
-  // 能量條
+  // 能量條（充能完畢時發光）
   const energyFill=document.querySelector('#energy-bar i');
-  if (energyFill) energyFill.style.width=(player.energy/player.energyMax*100)+'%';
+  if (energyFill){
+    energyFill.style.width=(player.energy/player.energyMax*100)+'%';
+    const isFull=player.energy>=player.energyMax;
+    energyFill.style.boxShadow=isFull ? '0 0 12px #ffd97e, 0 0 24px #d64e2b' : 'none';
+    energyFill.style.background=isFull
+      ? 'linear-gradient(90deg,#ffd97e,#ff9e3b)'
+      : 'linear-gradient(90deg,#d64e2b,#6fc7e8,#8a5be0)';
+  }
   hud('kills', kills); hud('killGoal', KILL_GOAL);
 
   // 角色名稱
@@ -795,18 +840,20 @@ function drawHUD(){
 
   // 敵人狀態
   const alive=enemies.filter(e=>e.hp>0);
-  if (alive.length){
-    const near=alive.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
+  // 優先顯示鎖定目標，否則顯示最近的
+  const displayTarget=player.target && player.target.hp>0
+    ? player.target
+    : alive.length>0 ? alive.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b) : null;
+  if (displayTarget){
     const ehpEl=document.getElementById('ehp');
-    if (ehpEl) ehpEl.style.width=(near.hp/near.maxHp*100)+'%';
-    hud('ename', near.type.name);
-    hud('aura', near.aura?EL_NAME[near.aura]:'無');
-    hud('aura', near.aura?EL_NAME[near.aura]:'無');
-    // 找頁面上的所有 superconduct 元素
+    if (ehpEl) ehpEl.style.width=(displayTarget.hp/displayTarget.maxHp*100)+'%';
+    const lockMark=player.target===displayTarget ? '🔒 ' : '';
+    hud('ename', lockMark+displayTarget.type.name);
+    hud('aura', displayTarget.aura?EL_NAME[displayTarget.aura]:'無');
     document.querySelectorAll('#superconduct').forEach(el=>{
-      if (near.superconductT>0){
+      if (displayTarget.superconductT>0){
         el.style.display='';
-        el.textContent=`⚡ 防禦 -40% (${Math.ceil(near.superconductT)}s)`;
+        el.textContent=`⚡ 防禦 -40% (${Math.ceil(displayTarget.superconductT)}s)`;
       } else {
         el.style.display='none';
       }
@@ -817,6 +864,20 @@ function drawHUD(){
     if (ehpEl) ehpEl.style.width='0%';
     document.querySelectorAll('#superconduct').forEach(el=>el.style.display='none');
   }
+}
+
+// ---- 鎖定系統 ----
+function lockTarget(){
+  const alive=enemies.filter(e=>e.hp>0);
+  if (alive.length===0){ player.target=null; showLog('無可鎖定目標'); return; }
+  if (!player.target || player.target.hp<=0){
+    player.target=alive[0];
+  } else {
+    const idx=alive.indexOf(player.target);
+    player.target=alive[(idx+1)%alive.length];
+  }
+  showLog(`🔒 鎖定：${player.target.type.name}`);
+  playTone(800, 0.08, 'sine', 0.06);
 }
 
 // ---- 操作 ----
@@ -830,6 +891,7 @@ document.addEventListener('keydown', e=>{
   if (e.code==='KeyE') elementSkill();
   if (e.code==='KeyQ') playerBurst();
   if (e.code==='KeyF') switchParty();
+  if (e.code==='Tab'){ e.preventDefault(); lockTarget(); }
   if (e.code==='Space' && player.dashCD<=0){
     player.iframes=0.3; player.dashCD=0.8;
     player.x+=Math.cos(player.face)*110; player.y+=Math.sin(player.face)*110;
