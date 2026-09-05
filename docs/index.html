@@ -96,7 +96,13 @@
 
   @media (min-width:901px) and (pointer:fine){
     #mobile-controls{display:none !important}
+    #joystick-zone,#action-zone{display:none !important}
     #bottom-hud{display:none !important}
+  }
+
+  @media (max-width:900px),(pointer:coarse){
+    #mobile-controls{display:flex !important}
+    #joystick-zone,#action-zone{display:flex !important}
   }
 </style>
 </head>
