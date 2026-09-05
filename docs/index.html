@@ -92,10 +92,10 @@
   .btn-skill .cd-overlay.active{display:flex}
 
   /* 顯示控制 */
-  #mobile-controls{display:none}
+  #mobile-controls{display:flex}
 
-  @media (max-width:900px),(pointer:coarse){
-    #mobile-controls{display:flex !important}
+  @media (min-width:901px) and (pointer:fine){
+    #mobile-controls{display:none !important}
     #bottom-hud{display:none !important}
   }
 </style>
@@ -394,8 +394,8 @@ canvas.addEventListener('touchend', ()=>touchStart=null);
       dx = dx/dist * BASE_R;
       dy = dy/dist * BASE_R;
     }
-    joyX = dx / BASE_R;
-    joyY = dy / BASE_R;
+    joyX = -dx / BASE_R;
+    joyY = -dy / BASE_R;
     const px = c.x + dx - THUMB_R;
     const py = c.y + dy - THUMB_R;
     thumb.style.left = px+'px';
@@ -1034,7 +1034,7 @@ function doDash(){
   clampPlayer();
   flashReaction('#ffffff');
   spawnParticles(player.x, player.z, 0.8, 0xffffff);
-  playTone(80, 0.1, 'sine', 0.08);
+  playTone(80, 0.1, 'sine', 0.24);
 }
 
 function doAttack(){
@@ -1069,7 +1069,7 @@ function doAttack(){
     playAttackSound(player.combo);
   } else {
     spawnSlashEffect(0x888888);
-    playTone(200, 0.05, 'square', 0.05);
+    playTone(200, 0.05, 'square', 0.15);
   }
   updateHUD();
 }
@@ -1107,8 +1107,8 @@ function dealDamageToPlayer(dmg){
   player.hp-=dmg; player.iframes=0.5;
   totalDamageTaken+=dmg;
   screenShake(5);
-  playTone(150, 0.15, 'sawtooth', 0.15);
-  if (player.hp<=0 && !gameOver){ playTone(100, 0.8, 'sine', 0.2); endGame(false); }
+  playTone(150, 0.15, 'sawtooth', 0.45);
+  if (player.hp<=0 && !gameOver){ playTone(100, 0.8, 'sine', 0.60); endGame(false); }
   updateHUD();
 }
 
@@ -1657,44 +1657,44 @@ function playTone(freq, dur, type='sine', vol=0.12, delay=0){
 }
 
 function playAttackSound(combo){
-  playTone(180 + combo*60, 0.06, 'square', 0.08);
-  playTone(220 + combo*80, 0.04, 'sawtooth', 0.05, 0.03);
+  playTone(180 + combo*60, 0.06, 'square', 0.24);
+  playTone(220 + combo*80, 0.04, 'sawtooth', 0.15, 0.03);
 }
 
 function playHitSound(){
-  playTone(120, 0.15, 'sawtooth', 0.12);
+  playTone(120, 0.15, 'sawtooth', 0.36);
   playTone(80, 0.1, 'sine', 0.08, 0.05);
 }
 
 function playSkillSound(elem){
   const freqs = { fire:[90,120], ice:[600,900], thunder:[2000,3000] };
   const [a,b] = freqs[elem] || [200,300];
-  playTone(a, 0.2, 'sawtooth', 0.15);
-  playTone(b, 0.15, 'square', 0.1, 0.05);
-  playTone(a*2, 0.1, 'sine', 0.08, 0.1);
+  playTone(a, 0.2, 'sawtooth', 0.45);
+  playTone(b, 0.15, 'square', 0.30, 0.05);
+  playTone(a*2, 0.1, 'sine', 0.24, 0.1);
 }
 
 function playBurstSound(){
-  playTone(50, 0.7, 'sine', 0.25);
-  playTone(80, 0.5, 'sawtooth', 0.15, 0.05);
-  playTone(120, 0.4, 'square', 0.12, 0.1);
-  playTone(2000, 0.2, 'sine', 0.08, 0.15);
+  playTone(50, 0.7, 'sine', 0.75);
+  playTone(80, 0.5, 'sawtooth', 0.45, 0.05);
+  playTone(120, 0.4, 'square', 0.36, 0.1);
+  playTone(2000, 0.2, 'sine', 0.24, 0.15);
 }
 
 function playSwitchSound(slotIdx){
-  playTone(400 + slotIdx*120, 0.12, 'triangle', 0.1);
-  playTone(600 + slotIdx*150, 0.08, 'sine', 0.06, 0.08);
+  playTone(400 + slotIdx*120, 0.12, 'triangle', 0.30);
+  playTone(600 + slotIdx*150, 0.08, 'sine', 0.18, 0.08);
 }
 
 function playEnemyDeathSound(){
-  playTone(80, 0.3, 'sine', 0.15);
-  playTone(60, 0.25, 'sawtooth', 0.1, 0.1);
+  playTone(80, 0.3, 'sine', 0.45);
+  playTone(60, 0.25, 'sawtooth', 0.30, 0.1);
 }
 
 function playWaveClearSound(){
-  playTone(400, 0.2, 'triangle', 0.15);
-  playTone(600, 0.2, 'triangle', 0.12, 0.15);
-  playTone(800, 0.3, 'sine', 0.1, 0.3);
+  playTone(400, 0.2, 'triangle', 0.45);
+  playTone(600, 0.2, 'triangle', 0.36, 0.15);
+  playTone(800, 0.3, 'sine', 0.30, 0.3);
 }
 
 function playReactionSound(react){
@@ -1705,7 +1705,7 @@ function playReactionSound(react){
     RESONANCE:   [[500,0.1,'sine'],[700,0.08,'sine']],
   };
   const s = sounds[react] || [];
-  s.forEach(([f,d,type],i)=>playTone(f,d,type,0.1,i*0.05));
+  s.forEach(([f,d,type],i)=>playTone(f,d,type,0.30,i*0.05));
 }
 
 // 背景音樂
@@ -1716,7 +1716,7 @@ function startBGM(){
   try {
     const ctx = getAudio();
     _bgmGain = ctx.createGain();
-    _bgmGain.gain.setValueAtTime(0.04, ctx.currentTime);
+    _bgmGain.gain.setValueAtTime(0.12, ctx.currentTime);
     _bgmGain.connect(ctx.destination);
 
     // 和弦進行：C - Am - F - G（反覆）
@@ -1738,7 +1738,7 @@ function startBGM(){
       const bOsc = ctx.createOscillator();
       const bGain = ctx.createGain();
       bOsc.type = 'sine'; bOsc.frequency.value = bass;
-      bGain.gain.setValueAtTime(0.06, now);
+      bGain.gain.setValueAtTime(0.18, now);
       bGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
       bOsc.connect(bGain); bGain.connect(_bgmGain);
       bOsc.start(now); bOsc.stop(now + 1.9);
@@ -1748,7 +1748,7 @@ function startBGM(){
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.type = 'triangle'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0.025, now);
+        g.gain.setValueAtTime(0.07, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
         o.connect(g); g.connect(_bgmGain);
         o.start(now); o.stop(now + 2.1);
