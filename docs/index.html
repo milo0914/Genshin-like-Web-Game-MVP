@@ -46,6 +46,58 @@
   .party-dots{display:flex;gap:4px;margin-top:4px}
   .party-dot{width:10px;height:10px;border-radius:50%;border:1px solid #444;transition:all 0.2s}
   .party-dot.active{border-color:#66e0b0;background:#66e0b0;box-shadow:0 0 6px #66e0b0}
+
+  /* ── 虛擬搖桿 ── */
+  #joystick-zone{position:fixed;bottom:30px;left:20px;width:140px;height:140px;pointer-events:all;z-index:20;display:none}
+  #joystick-base{position:absolute;inset:0;border-radius:50%;background:rgba(10,14,25,0.5);border:2px solid rgba(60,80,140,0.6)}
+  #joystick-thumb{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(100,160,255,0.7);border:2px solid rgba(150,200,255,0.9);left:50%;top:50%;transform:translate(-50%,-50%);transition:none;box-shadow:0 0 12px rgba(100,160,255,0.5)}
+  #joystick-dir{position:absolute;inset:10px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  #joystick-dir span{position:absolute;font-size:11px;color:rgba(200,220,255,0.7);user-select:none}
+  #joystick-dir .dir-u{top:2px}#joystick-dir .dir-d{bottom:2px}#joystick-dir .dir-l{left:4px}#joystick-dir .dir-r{right:4px}
+
+  /* ── 動作按鈕區 ── */
+  #action-zone{position:fixed;bottom:20px;right:10px;pointer-events:all;z-index:20;display:none;flex-direction:column;gap:8px;align-items:flex-end}
+  .act-row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+
+  /* 攻擊按鈕 */
+  .btn-attack{width:72px;height:72px;border-radius:50%;background:rgba(220,60,60,0.75);border:3px solid rgba(255,120,120,0.9);color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(220,60,60,0.4);user-select:none;touch-action:none;font-family:inherit;cursor:pointer;transition:transform 0.08s, background 0.08s}
+  .btn-attack:active{transform:scale(0.9);background:rgba(255,80,80,0.9)}
+
+  /* 技能按鈕（小） */
+  .btn-skill{width:54px;height:54px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#fff;user-select:none;touch-action:none;font-family:inherit;cursor:pointer;transition:transform 0.08s;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+  .btn-skill:active{transform:scale(0.88)}
+  .btn-skill .b-label{font-size:9px;opacity:0.8}
+  .btn-e{background:rgba(210,80,40,0.8);border:2px solid rgba(255,130,60,0.9)}
+  .btn-q{background:rgba(100,80,180,0.8);border:2px solid rgba(150,120,255,0.9)}
+  .btn-f{background:rgba(60,180,120,0.8);border:2px solid rgba(100,220,160,0.9)}
+
+  /* 元素切換按鈕列 */
+  .btn-el{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;user-select:none;touch-action:none;font-family:inherit;cursor:pointer;transition:transform 0.08s,box-shadow 0.1s;border:2px solid rgba(255,255,255,0.4)}
+  .btn-el:active{transform:scale(0.88)}
+  .btn-el.active{box-shadow:0 0 14px currentColor;border-color:#fff}
+  .el-fire-btn{background:rgba(210,60,30,0.8)}
+  .el-ice-btn{background:rgba(60,150,220,0.8)}
+  .el-thunder-btn{background:rgba(130,80,220,0.8)}
+
+  /* 鎖定按鈕 */
+  .btn-lock{width:44px;height:44px;border-radius:50%;background:rgba(200,160,50,0.8);border:2px solid rgba(255,200,80,0.9);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-family:inherit;cursor:pointer;box-shadow:0 0 10px rgba(200,160,50,0.4);transition:transform 0.08s}
+  .btn-lock:active{transform:scale(0.88)}
+
+  /* 衝刺按鈕 */
+  .btn-dash{width:52px;height:52px;border-radius:50%;background:rgba(80,120,200,0.8);border:2px solid rgba(120,160,255,0.9);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-family:inherit;cursor:pointer;box-shadow:0 0 10px rgba(80,120,200,0.4);transition:transform 0.08s}
+  .btn-dash:active{transform:scale(0.88)}
+
+  /* 冷卻遮罩 */
+  .btn-skill .cd-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa;pointer-events:none;display:none}
+  .btn-skill .cd-overlay.active{display:flex}
+
+  /* 顯示控制 */
+  #mobile-controls{display:none}
+
+  @media (max-width:900px),(pointer:coarse){
+    #mobile-controls{display:flex !important}
+    #bottom-hud{display:none !important}
+  }
 </style>
 </head>
 <body>
@@ -99,6 +151,53 @@
     <div class="ctrl-hint"><kbd>Q</kbd> 絕招</div>
     <div class="ctrl-hint"><kbd>F</kbd> 切人</div>
     <div class="ctrl-hint"><kbd>Tab</kbd> 鎖定</div>
+  </div>
+
+  <!-- 手機虛擬搖桿 -->
+  <div id="mobile-controls">
+    <!-- 左：搖桿 + 元素 -->
+    <div style="display:flex;flex-direction:column;gap:8px;pointer-events:all">
+      <div style="display:flex;gap:6px">
+        <button class="btn-el el-fire-btn active" id="tel-fire" style="color:#fff">🔥</button>
+        <button class="btn-el el-ice-btn" id="tel-ice" style="color:#fff">❄️</button>
+        <button class="btn-el el-thunder-btn" id="tel-thunder" style="color:#fff">⚡</button>
+      </div>
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-dir">
+            <span class="dir-u">▲</span>
+            <span class="dir-d">▼</span>
+            <span class="dir-l">◀</span>
+            <span class="dir-r">▶</span>
+          </div>
+          <div id="joystick-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：動作按鈕 -->
+    <div id="action-zone">
+      <div class="act-row">
+        <button class="btn-lock" id="tlock">🔒</button>
+      </div>
+      <div class="act-row">
+        <button class="btn-skill btn-e" id="tskill" style="position:relative">
+          E<span class="b-label">戰技</span>
+          <div class="cd-overlay" id="tskill-cd"></div>
+        </button>
+        <button class="btn-skill btn-q" id="tburst" style="position:relative">
+          Q<span class="b-label">絕招</span>
+          <div class="cd-overlay" id="tburst-cd"></div>
+        </button>
+        <button class="btn-skill btn-f" id="tswitch">
+          F<span class="b-label">切人</span>
+        </button>
+      </div>
+      <div class="act-row">
+        <button class="btn-dash" id="tdash">💨</button>
+        <button class="btn-attack" id="tattack">⚔️</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -254,6 +353,93 @@ canvas.addEventListener('touchmove', e=>{
   }
 });
 canvas.addEventListener('touchend', ()=>touchStart=null);
+
+// ── 虛擬搖桿邏輯 ──
+(function(){
+  const zone = document.getElementById('joystick-zone');
+  const thumb = document.getElementById('joystick-thumb');
+  if (!zone || !thumb) return;
+
+  const BASE_R = 70; // 搖桿半徑
+  const THUMB_R = 28;
+  let active = false;
+  let joyX = 0, joyY = 0; // 標準化 -1~1
+
+  function getZoneCenter(){
+    const r = zone.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  function onJoyStart(e){
+    e.preventDefault();
+    active = true;
+    moveJoy(e.touches[0] || e);
+  }
+  function onJoyMove(e){
+    e.preventDefault();
+    if (!active) return;
+    moveJoy(e.touches[0]);
+  }
+  function onJoyEnd(e){
+    e.preventDefault();
+    active = false;
+    joyX = joyY = 0;
+    thumb.style.left = '50%';
+    thumb.style.top = '50%';
+    thumb.style.transform = 'translate(-50%,-50%)';
+  }
+  function moveJoy(touch){
+    const c = getZoneCenter();
+    let dx = touch.clientX - c.x;
+    let dy = touch.clientY - c.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > BASE_R){
+      dx = dx/dist * BASE_R;
+      dy = dy/dist * BASE_R;
+    }
+    joyX = dx / BASE_R;
+    joyY = dy / BASE_R;
+    const px = c.x + dx - THUMB_R;
+    const py = c.y + dy - THUMB_R;
+    thumb.style.left = px+'px';
+    thumb.style.top = py+'px';
+    thumb.style.transform = 'none';
+  }
+
+  zone.addEventListener('touchstart', onJoyStart, {passive:false});
+  zone.addEventListener('touchmove', onJoyMove, {passive:false});
+  zone.addEventListener('touchend', onJoyEnd, {passive:false});
+  zone.addEventListener('touchcancel', onJoyEnd, {passive:false});
+
+  // 暴露讀取值
+  window.getJoystick = () => ({ x: joyX, y: joyY, active });
+})();
+
+// ── 手機按鈕 ──
+(function(){
+  function tap(id, fn){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e=>{ e.preventDefault(); fn(); }, {passive:false});
+    el.addEventListener('mousedown', e=>{ if(!('ontouchstart' in window)) fn(); });
+  }
+
+  tap('tattack', ()=>{ if(started && !gameOver) doAttack(); });
+  tap('tdash',  ()=>{ if(started && !gameOver) doDash(); });
+  tap('tskill', ()=>{ if(started && !gameOver) doSkill(); });
+  tap('tburst', ()=>{ if(started && !gameOver) doBurst(); });
+  tap('tswitch',()=>{ if(started && !gameOver) doSwitch(); });
+  tap('tlock',  ()=>{ if(started) doLockTarget(); });
+
+  function setEl(id, elem){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e=>{ e.preventDefault(); player.element=elem; updateElementUI(); }, {passive:false});
+  }
+  setEl('tel-fire',   EL.FIRE);
+  setEl('tel-ice',    EL.ICE);
+  setEl('tel-thunder', EL.THUNDER);
+})();
 
 document.getElementById('startBtn').addEventListener('click', ()=>{
   document.getElementById('startScreen').style.display='none';
@@ -1190,6 +1376,13 @@ function updatePlayer(dt){
   if (keys['KeyS']){ mx+=0; mz+=1; }
   if (keys['KeyA']){ mx-=1; mz+=0; }
   if (keys['KeyD']){ mx+=1; mz+=0; }
+
+  // 虛擬搖桿輸入
+  const joy = window.getJoystick ? window.getJoystick() : {x:0,y:0,active:false};
+  if (joy.active){
+    mx += joy.x;
+    mz -= joy.y; // joystick Y is inverted for 3D movement
+  }
   if (mx||mz){
     const len=Math.hypot(mx,mz); mx/=len; mz/=len;
     const spd=player.speed*(keys['ShiftLeft']?1.5:1);
@@ -1288,6 +1481,27 @@ function updateHUD(){
   // 能量充滿時發光
   const ef = document.getElementById('energyFill');
   ef.style.boxShadow = player.energy>=player.energyMax ? '0 0 12px #ffd97e' : 'none';
+
+  // 手機按鈕冷卻遮罩
+  const tsc = document.getElementById('tskill-cd');
+  const tbc = document.getElementById('tburst-cd');
+  if (tsc){
+    const ep = player.skillCD / 8;
+    tsc.style.clipPath = ep > 0 ? `polygon(0 0, 100% 0, 100% ${(1-ep)*100}%, 0 ${(1-ep)*100}%)` : 'none';
+    tsc.style.background = ep > 0 ? 'rgba(0,0,0,0.65)' : 'none';
+    tsc.textContent = player.skillCD > 0 ? Math.ceil(player.skillCD)+'s' : '';
+  }
+  if (tbc){
+    const ep = player.burstCD / 30;
+    tbc.style.clipPath = ep > 0 ? `polygon(0 0, 100% 0, 100% ${(1-ep)*100}%, 0 ${(1-ep)*100}%)` : 'none';
+    tbc.style.background = ep > 0 ? 'rgba(0,0,0,0.65)' : 'none';
+    tbc.textContent = player.burstCD > 0 ? Math.ceil(player.burstCD)+'s' : '';
+    if (player.energy < player.energyMax && player.burstCD <= 0){
+      tbc.textContent = '充能中';
+      tbc.style.background = 'rgba(0,0,0,0.65)';
+      tbc.style.clipPath = `polygon(0 0, 100% 0, 100% ${(player.energy/player.energyMax)*100}%, 0 ${(player.energy/player.energyMax)*100}%)`;
+    }
+  }
 }
 
 function updateElementUI(){
