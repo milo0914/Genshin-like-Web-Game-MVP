@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>黎恩 Rein — 3D 完整建模預覽</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0d18;color:#cfddf6;font-family:"Noto Sans TC",sans-serif;overflow:hidden;height:100vh}
+  #stage{position:absolute;left:0;right:0;top:0;bottom:0}
+  #info{position:absolute;left:16px;top:16px;background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:10px;padding:14px 18px;backdrop-filter:blur(8px);max-width:320px;z-index:5}
+  #info h1{font-size:18px;color:#E0A42E;margin-bottom:4px}
+  #info .sub{font-size:11px;color:#6FC7E8;letter-spacing:2px;margin-bottom:10px}
+  #info p{font-size:12px;line-height:1.7;color:#cfddf6}
+  #info .label{color:#8A5BE0;font-weight:bold}
+  #controls{position:absolute;right:16px;top:16px;background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:10px;padding:12px 16px;backdrop-filter:blur(8px);z-index:5;font-size:12px;display:flex;flex-direction:column;gap:8px}
+  #controls .row{display:flex;gap:6px;align-items:center}
+  .el-btn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer;font-size:11px;font-weight:bold;color:#fff;transition:all 0.15s;font-family:inherit}
+  .el-btn.active{transform:scale(1.15);box-shadow:0 0 16px currentColor;border-color:#fff}
+  .el-fire{background:#D64E2B}
+  .el-ice{background:#6FC7E8}
+  .el-thunder{background:#8A5BE0}
+  #controls button{background:#3a4358;border:1px solid #4A5A73;color:#cfddf6;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px}
+  #controls button:hover{background:#4A5A73}
+  #controls button.active{background:#8A5BE0;color:#fff;border-color:#8A5BE0}
+  #status{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:8px;padding:8px 16px;font-size:11px;backdrop-filter:blur(8px);z-index:5;color:#aaa}
+  #status .ok{color:#66e0b0}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="info">
+  <h1>嵐刃・黎恩 Rein</h1>
+  <div class="sub">THE BLADE OF THE STORM</div>
+  <p>
+    <span class="label">178cm / 7.5頭身</span> 日系寫實劍士，寄宿火・冰・雷三元素於「三相之劍 裂空」之中。
+  </p>
+  <p style="margin-top:6px;font-size:11px;color:#888">
+    ✦ 異色瞳（左金右冰藍）<br>
+    ✦ 右手纏繃帶封印雷元素暴走<br>
+    ✦ 左肩單片輕甲、右肩披風扣環<br>
+    ✦ 暴風灰藍長風衣（內襯深紫）<br>
+    ✦ 三相之劍：三枚碎晶 赤/藍/紫
+  </p>
+</div>
+<div id="controls">
+  <div class="row">
+    <button class="el-btn el-fire active" data-el="fire">火</button>
+    <button class="el-btn el-ice" data-el="ice">冰</button>
+    <button class="el-btn el-thunder" data-el="thunder">雷</button>
+    <span id="el-label" style="color:#D64E2B;font-weight:bold;margin-left:6px">熔紅</span>
+  </div>
+  <div class="row">
+    <button id="btn-spin" class="active">⟳ 自動旋轉</button>
+    <button id="btn-walk">🚶 走路</button>
+    <button id="btn-attack">⚔️ 攻擊</button>
+    <button id="btn-burst">🔥 絕招</button>
+  </div>
+  <div class="row" style="font-size:10px;color:#888">
+    <span>滑鼠拖曳旋轉 · 滾輪縮放</span>
+  </div>
+</div>
+<div id="status">建立中…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+'use strict';
+
+// ============================================================
+// 設定稿嚴格顏色（Hex Code from proportion-sheet.md）
+// ============================================================
+const COLORS = {
+  hairMain: 0x1F2538,   // 深藍黑
+  hairStreak: 0xE8F1FF, // 電光白
+  skin: 0xEBD3C2,       // 冷白
+  coatMain: 0x4A5A73,   // 暴風灰藍
+  coatInner: 0x3B2A4E,  // 深紫
+  underLayer: 0x1B1E24, // 墨黑
+  chestArmor: 0x6E7681, // 鋼鐵灰
+  pants: 0x3A4458,      // 深灰（依設定稿加深變體）
+  boots: 0x2A2F38,
+  metal: 0xA9B0BC,      // 古銅銀
+  metalDark: 0x6E7681,
+  pauldron: 0x6E7681,
+  bandage: 0xEBD3C2,    // 繃帶（白偏）
+  fire: 0xD64E2B,
+  ice: 0x6FC7E8,
+  thunder: 0x8A5BE0,
+};
+
+// 7.5頭身比例：頭高 H = 23.7cm / 178cm
+const H = 23.7;          // 1 head height in cm
+const TOTAL_H = 7.5;     // 總頭數
+// 場景單位 1 unit = 1 cm
+// 我們把人物整體 scale 放大，讓細節看得見
+const SCALE = 0.04;
+const HEAD_H = H * SCALE;     // 頭部高度 in scene units
+const TOTAL_HEIGHT = 178 * SCALE;
+
+// ============================================================
+// Three.js 場景
+// ============================================================
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1322);
+scene.fog = new THREE.Fog(0x0e1322, 8, 25);
+
+// 相機：水平方向正面看
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, TOTAL_HEIGHT*0.55, TOTAL_HEIGHT*1.4);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, TOTAL_HEIGHT*0.5, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = TOTAL_HEIGHT*0.8;
+controls.maxDistance = TOTAL_HEIGHT*3.5;
+
+// 光照：3點照明，模擬黃昏攝影棚
+const hemi = new THREE.HemisphereLight(0x9bb0d6, 0x2a3050, 0.55);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xfff2d0, 1.4);  // 主光暖色
+key.position.set(4, 8, 3);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.left = -3;
+key.shadow.camera.right = 3;
+key.shadow.camera.top = 3;
+key.shadow.camera.bottom = -3;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x8aa8d6, 0.6);  // 補光冷色
+fill.position.set(-3, 4, -2);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xc8d4ff, 0.4);  // 邊光
+rim.position.set(0, 3, -5);
+scene.add(rim);
+
+// 地面：陰影接收平面
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(4, 64),
+  new THREE.MeshStandardMaterial({ color:0x141826, roughness:0.85, metalness:0.1 })
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 旋轉轉盤裝飾（顯示立柱位置）
+for (let i=0;i<8;i++){
+  const a = i*Math.PI/4;
+  const pillar = new THREE.Mesh(
+    new THREE.BoxGeometry(0.15, TOTAL_HEIGHT*1.5, 0.15),
+    new THREE.MeshStandardMaterial({ color:0x2a3050, roughness:0.7, metalness:0.3 })
+  );
+  pillar.position.set(Math.cos(a)*3.2, TOTAL_HEIGHT*0.75, Math.sin(a)*3.2);
+  scene.add(pillar);
+}
+
+// ============================================================
+// 黎恩模型建立（嚴格按照設定稿每個部位）
+// ============================================================
+const rein = new THREE.Group();
+rein.userData.parts = {};  // 儲存所有部位供動畫用
+scene.add(rein);
+
+// ----- 材質工廠 -----
+function makeMat(color, opts={}){
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: opts.roughness ?? 0.7,
+    metalness: opts.metalness ?? 0.1,
+    emissive: opts.emissive ?? 0x000000,
+    emissiveIntensity: opts.emissiveIntensity ?? 0,
+    side: opts.side ?? THREE.FrontSide,
+  });
+}
+
+function add(mesh, name, parent=rein){
+  mesh.castShadow = true;
+  parent.add(mesh);
+  rein.userData.parts[name] = mesh;
+  return mesh;
+}
+
+// ===== 髮（中長髮 + 挑染）=====
+// 主髮塊
+const hairBack = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.95, 24, 18, 0, Math.PI*2, 0, Math.PI*0.55),
+  makeMat(COLORS.hairMain, { roughness:0.85 })
+);
+hairBack.position.y = TOTAL_HEIGHT - HEAD_H*0.55;
+add(hairBack, 'hairBack');
+
+// 後面長髮垂落到頸後
+const hairTail = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.7, HEAD_H*0.45, HEAD_H*1.2, 16, 1, true),
+  makeMat(COLORS.hairMain, { roughness:0.85, side:THREE.DoubleSide })
+);
+hairTail.position.set(0, TOTAL_HEIGHT - HEAD_H*1.6, -HEAD_H*0.4);
+add(hairTail, 'hairTail');
+
+// 瀏海分三束（前面）
+const bangsGroup = new THREE.Group();
+bangsGroup.position.set(0, TOTAL_HEIGHT - HEAD_H*0.5, HEAD_H*0.3);
+for (let i=-1; i<=1; i++){
+  const bang = new THREE.Mesh(
+    new THREE.BoxGeometry(HEAD_H*0.35, HEAD_H*0.5, 0.04),
+    makeMat(COLORS.hairMain, { roughness:0.85 })
+  );
+  bang.position.x = i*HEAD_H*0.35;
+  bang.rotation.z = i*0.15;
+  bangsGroup.add(bang);
+}
+add(bangsGroup, 'bangs');
+
+// 挑染電光白一撮（右側）
+const streak = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.18, HEAD_H*0.6, 0.05),
+  makeMat(COLORS.hairStreak, { roughness:0.7, emissive:COLORS.hairStreak, emissiveIntensity:0.3 })
+);
+streak.position.set(HEAD_H*0.35, TOTAL_HEIGHT - HEAD_H*0.4, HEAD_H*0.45);
+streak.rotation.z = -0.2;
+add(streak, 'streak');
+
+// ===== 頭（臉部球體 + 異色瞳）=====
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.85, 28, 22),
+  makeMat(COLORS.skin, { roughness:0.75 })
+);
+head.position.y = TOTAL_HEIGHT - HEAD_H*0.5;
+add(head, 'head');
+
+// 左眼 琥珀金
+const eyeL = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.13, 12, 10),
+  makeMat(0xE0A42E, { emissive:0xE0A42E, emissiveIntensity:0.4, roughness:0.2, metalness:0.1 })
+);
+eyeL.position.set(-HEAD_H*0.3, TOTAL_HEIGHT - HEAD_H*0.55, HEAD_H*0.75);
+add(eyeL, 'eyeL');
+
+// 右眼 冰藍
+const eyeR = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.13, 12, 10),
+  makeMat(0x6FC7E8, { emissive:0x6FC7E8, emissiveIntensity:0.4, roughness:0.2, metalness:0.1 })
+);
+eyeR.position.set(HEAD_H*0.3, TOTAL_HEIGHT - HEAD_H*0.55, HEAD_H*0.75);
+add(eyeR, 'eyeR');
+
+// 鼻子
+const nose = new THREE.Mesh(
+  new THREE.ConeGeometry(HEAD_H*0.1, HEAD_H*0.2, 8),
+  makeMat(COLORS.skin, { roughness:0.75 })
+);
+nose.position.set(0, TOTAL_HEIGHT - HEAD_H*0.7, HEAD_H*0.85);
+nose.rotation.x = Math.PI;
+add(nose, 'nose');
+
+// 左耳耳墜（電光石）
+const earRing = new THREE.Group();
+earRing.position.set(-HEAD_H*0.85, TOTAL_HEIGHT - HEAD_H*0.85, 0);
+// 耳釘主體
+const earringGem = new THREE.Mesh(
+  new THREE.OctahedronGeometry(HEAD_H*0.15),
+  makeMat(0xC8A8FF, { emissive:0xC8A8FF, emissiveIntensity:0.8, roughness:0.1, metalness:0.7 })
+);
+earringGem.position.set(0, -HEAD_H*0.25, 0);
+earRing.add(earringGem);
+// 鉤環
+const earringHook = new THREE.Mesh(
+  new THREE.TorusGeometry(HEAD_H*0.1, 0.02, 8, 16),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+earringHook.rotation.x = Math.PI/2;
+earringHook.position.set(0, 0, 0);
+earRing.add(earringHook);
+add(earRing, 'earRing');
+
+// ===== 頸部 =====
+const neck = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.35, HEAD_H*0.42, HEAD_H*0.5, 16),
+  makeMat(COLORS.skin, { roughness:0.75 })
+);
+neck.position.y = TOTAL_HEIGHT - HEAD_H*1.4;
+add(neck, 'neck');
+
+// ===== 高領緊身衣（墨黑，胸側三條發光條紋）=====
+// 緊身衣主體
+const undersuit = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.95, HEAD_H*1.1, HEAD_H*3, 16),
+  makeMat(COLORS.underLayer, { roughness:0.55 })
+);
+undersuit.position.y = TOTAL_HEIGHT - HEAD_H*3.5;
+add(undersuit, 'undersuit');
+
+// 立領（高至下巴）
+const collar = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.5, HEAD_H*0.55, HEAD_H*0.4, 16),
+  makeMat(COLORS.underLayer, { roughness:0.55 })
+);
+collar.position.y = TOTAL_HEIGHT - HEAD_H*1.65;
+add(collar, 'collar');
+
+// 胸側三條細紋（赤藍紫，隨元素活化發光）
+const chestStripes = new THREE.Group();
+chestStripes.position.set(0, TOTAL_HEIGHT - HEAD_H*2.5, HEAD_H*0.95);
+// 紅
+const stripeFire = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, HEAD_H*1.2, 0.02),
+  makeMat(COLORS.fire, { emissive:COLORS.fire, emissiveIntensity:1.2 })
+);
+stripeFire.position.x = -HEAD_H*0.6;
+chestStripes.add(stripeFire);
+const stripeIce = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, HEAD_H*1.2, 0.02),
+  makeMat(COLORS.ice, { emissive:COLORS.ice, emissiveIntensity:1.2 })
+);
+stripeIce.position.x = -HEAD_H*0.4;
+chestStripes.add(stripeIce);
+const stripeThunder = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, HEAD_H*1.2, 0.02),
+  makeMat(COLORS.thunder, { emissive:COLORS.thunder, emissiveIntensity:1.2 })
+);
+stripeThunder.position.x = -HEAD_H*0.2;
+chestStripes.add(stripeThunder);
+add(chestStripes, 'chestStripes');
+
+// ===== 深灰短打護胸甲（左胸覆蓋）=====
+const chestArmor = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*1.6, HEAD_H*1.4, HEAD_H*0.7),
+  makeMat(COLORS.chestArmor, { roughness:0.4, metalness:0.6 })
+);
+chestArmor.position.set(0, TOTAL_HEIGHT - HEAD_H*3.2, HEAD_H*0.55);
+add(chestArmor, 'chestArmor');
+
+// 護胸甲上的稜線（裝飾細節）
+const armorLine1 = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*1.4, 0.02, HEAD_H*0.05),
+  makeMat(COLORS.metalDark, { metalness:0.8, roughness:0.3 })
+);
+armorLine1.position.set(0, TOTAL_HEIGHT - HEAD_H*2.6, HEAD_H*0.95);
+add(armorLine1, 'armorLine1');
+
+const armorLine2 = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.05, HEAD_H*1.1, HEAD_H*0.05),
+  makeMat(COLORS.metalDark, { metalness:0.8, roughness:0.3 })
+);
+armorLine2.position.set(0, TOTAL_HEIGHT - HEAD_H*3.2, HEAD_H*0.95);
+add(armorLine2, 'armorLine2');
+
+// ===== 左肩單片輕甲（肩鎧）=====
+const pauldron = new THREE.Group();
+pauldron.position.set(-HEAD_H*1.4, TOTAL_HEIGHT - HEAD_H*2.5, 0);
+const pauldronMain = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.7, 16, 12, 0, Math.PI*2, 0, Math.PI*0.55),
+  makeMat(COLORS.pauldron, { roughness:0.35, metalness:0.7 })
+);
+pauldron.add(pauldronMain);
+// 護肩金邊
+const pauldronRim = new THREE.Mesh(
+  new THREE.TorusGeometry(HEAD_H*0.65, 0.03, 8, 24, Math.PI*1.1),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+pauldronRim.rotation.x = -Math.PI/2;
+pauldronRim.rotation.z = -Math.PI*0.3;
+pauldron.add(pauldronRim);
+add(pauldron, 'pauldron');
+
+// ===== 右肩披風扣環（金屬圓環 + 三段布帶）=====
+const capeClasp = new THREE.Group();
+capeClasp.position.set(HEAD_H*1.4, TOTAL_HEIGHT - HEAD_H*2.5, 0);
+const claspRing = new THREE.Mesh(
+  new THREE.TorusGeometry(HEAD_H*0.25, HEAD_H*0.05, 12, 24),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.25 })
+);
+claspRing.rotation.y = Math.PI/2;
+capeClasp.add(claspRing);
+for (let i=0;i<3;i++){
+  const claspStrip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, HEAD_H*0.7, HEAD_H*0.05),
+    makeMat(COLORS.coatInner, { roughness:0.8 })
+  );
+  claspStrip.position.set(0, -HEAD_H*0.5, i*HEAD_H*0.12 - HEAD_H*0.12);
+  capeClasp.add(claspStrip);
+}
+add(capeClasp, 'capeClasp');
+
+// ===== 暴風灰藍長風衣（內襯深紫）=====
+// 上身（敞開效果）
+const coatUpper = new THREE.Group();
+const coatLeft = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*1.0, HEAD_H*2.5, HEAD_H*0.3),
+  makeMat(COLORS.coatMain, { roughness:0.7, side:THREE.DoubleSide })
+);
+coatLeft.position.set(-HEAD_H*0.7, TOTAL_HEIGHT - HEAD_H*3.4, HEAD_H*0.1);
+coatLeft.rotation.z = 0.1;
+coatUpper.add(coatLeft);
+
+const coatRight = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*1.0, HEAD_H*2.5, HEAD_H*0.3),
+  makeMat(COLORS.coatMain, { roughness:0.7, side:THREE.DoubleSide })
+);
+coatRight.position.set(HEAD_H*0.7, TOTAL_HEIGHT - HEAD_H*3.4, HEAD_H*0.1);
+coatRight.rotation.z = -0.1;
+coatUpper.add(coatRight);
+// 內襯（深紫，在兩片之間隱約可見）
+const coatInner = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.5, HEAD_H*2.3, HEAD_H*0.2),
+  makeMat(COLORS.coatInner, { roughness:0.6, side:THREE.DoubleSide })
+);
+coatInner.position.set(0, TOTAL_HEIGHT - HEAD_H*3.4, HEAD_H*0.15);
+coatUpper.add(coatInner);
+add(coatUpper, 'coatUpper');
+
+// 長下襬（及膝，前短後長）
+const coatSkirt = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*1.3, HEAD_H*2.5, HEAD_H*3, 16, 1, true),
+  makeMat(COLORS.coatMain, { roughness:0.7, side:THREE.DoubleSide })
+);
+coatSkirt.position.y = TOTAL_HEIGHT - HEAD_H*5.6;
+add(coatSkirt, 'coatSkirt');
+
+// 風衣下襬內側（深紫內襯）
+const coatSkirtInner = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*1.2, HEAD_H*2.4, HEAD_H*2.8, 16, 1, true),
+  makeMat(COLORS.coatInner, { roughness:0.6, side:THREE.BackSide })
+);
+coatSkirtInner.position.y = TOTAL_HEIGHT - HEAD_H*5.6;
+add(coatSkirtInner, 'coatSkirtInner');
+
+// 右袖口雷紋刺繡（emissive 雷紫光紋）
+const rightSleeveEmblem = new THREE.Mesh(
+  new THREE.TorusGeometry(HEAD_H*0.3, 0.02, 8, 24, Math.PI*1.5),
+  makeMat(COLORS.thunder, { emissive:COLORS.thunder, emissiveIntensity:1.5 })
+);
+rightSleeveEmblem.position.set(HEAD_H*1.7, TOTAL_HEIGHT - HEAD_H*4.5, HEAD_H*0.1);
+rightSleeveEmblem.rotation.x = Math.PI/2;
+rightSleeveEmblem.rotation.z = -0.4;
+add(rightSleeveEmblem, 'rightSleeveEmblem');
+
+// ===== 雙臂 =====
+// 左臂（無繃帶）
+const leftArm = new THREE.Group();
+leftArm.position.set(-HEAD_H*1.3, TOTAL_HEIGHT - HEAD_H*3.2, 0);
+const leftUpperArm = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.3, HEAD_H*1.4, 12),
+  makeMat(COLORS.coatMain, { roughness:0.7 })
+);
+leftUpperArm.position.y = -HEAD_H*0.7;
+leftArm.add(leftUpperArm);
+// 左前臂（皮革長手套 - 暗色）
+const leftForearm = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.3, HEAD_H*0.28, HEAD_H*1.2, 12),
+  makeMat(0x2a2f38, { roughness:0.4 })
+);
+leftForearm.position.y = -HEAD_H*2.0;
+leftArm.add(leftForearm);
+add(leftArm, 'leftArm');
+
+// 右臂（含繃帶 - 核心標誌）
+const rightArm = new THREE.Group();
+rightArm.position.set(HEAD_H*1.3, TOTAL_HEIGHT - HEAD_H*3.2, 0);
+const rightUpperArm = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.3, HEAD_H*1.4, 12),
+  makeMat(COLORS.coatMain, { roughness:0.7 })
+);
+rightUpperArm.position.y = -HEAD_H*0.7;
+rightArm.add(rightUpperArm);
+// 右前臂纏繃帶（封印雷元素暴走）
+const bandageMat = makeMat(0xF0E8D8, { roughness:0.85, side:THREE.DoubleSide });
+// 繃帶環繞 - 多層
+for (let i=0; i<6; i++){
+  const wrap = new THREE.Mesh(
+    new THREE.TorusGeometry(HEAD_H*0.32, 0.04, 6, 24),
+    bandageMat
+  );
+  wrap.position.y = -HEAD_H*(1.4 + i*0.22);
+  wrap.rotation.x = Math.PI/2;
+  rightArm.add(wrap);
+}
+// 繃帶纏繞的圓柱主體（略白偏米）
+const rightForearm = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.3, HEAD_H*1.4, 12),
+  bandageMat
+);
+rightForearm.position.y = -HEAD_H*2.1;
+rightArm.add(rightForearm);
+add(rightArm, 'rightArm');
+
+// ===== 腰帶 =====
+const belt = new THREE.Mesh(
+  new THREE.TorusGeometry(HEAD_H*1.1, HEAD_H*0.1, 12, 24),
+  makeMat(0x1F2538, { roughness:0.5 })
+);
+belt.position.y = TOTAL_HEIGHT - HEAD_H*5.2;
+belt.rotation.x = Math.PI/2;
+add(belt, 'belt');
+
+// 腰帶金扣
+const beltBuckle = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.4, HEAD_H*0.4, HEAD_H*0.1),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.25 })
+);
+beltBuckle.position.set(0, TOTAL_HEIGHT - HEAD_H*5.2, HEAD_H*1.05);
+add(beltBuckle, 'beltBuckle');
+
+// ===== 劍鞘（腰後右側，25° 斜角，磁吸式）=====
+const scabbard = new THREE.Group();
+scabbard.position.set(HEAD_H*0.5, TOTAL_HEIGHT - HEAD_H*5.5, -HEAD_H*0.6);
+scabbard.rotation.z = Math.PI/180 * 25;  // 25° 斜角
+
+const scabbardBlade = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.35, HEAD_H*3.5, HEAD_H*0.2),
+  makeMat(0x2a3040, { roughness:0.3, metalness:0.7 })
+);
+scabbardBlade.position.y = -HEAD_H*1.5;
+scabbard.add(scabbardBlade);
+
+// 鞘口金邊
+const scabbardMouth = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.25, HEAD_H*0.25, HEAD_H*0.15, 16),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+scabbardMouth.position.y = -HEAD_H*0.3;
+scabbard.add(scabbardMouth);
+// 鞘底金屬包覆
+const scabbardTip = new THREE.Mesh(
+  new THREE.ConeGeometry(HEAD_H*0.2, HEAD_H*0.4, 12),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+scabbardTip.position.y = -HEAD_H*3.2;
+scabbard.add(scabbardTip);
+// 磁吸扣（金屬小方塊）
+const magnetClasp = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.25, HEAD_H*0.2, HEAD_H*0.1),
+  makeMat(COLORS.metal, { metalness:0.95, roughness:0.15 })
+);
+magnetClasp.position.set(0, HEAD_H*0.1, HEAD_H*0.2);
+scabbard.add(magnetClasp);
+add(scabbard, 'scabbard');
+
+// ===== 三相之劍「裂空」（手持展示）=====
+const sword = new THREE.Group();
+sword.position.set(HEAD_H*2.5, TOTAL_HEIGHT - HEAD_H*4.5, HEAD_H*0.5);
+sword.rotation.z = -Math.PI/4;  // 斜握
+
+// 劍身（銀白）
+const blade = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.15, HEAD_H*3.2, HEAD_H*0.04),
+  makeMat(0xDDE5EC, { roughness:0.15, metalness:0.95 })
+);
+blade.position.y = HEAD_H*1.6;
+sword.add(blade);
+
+// 劍格（十字金色）
+const crossguard = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.7, HEAD_H*0.18, HEAD_H*0.12),
+  makeMat(COLORS.metal, { metalness:0.95, roughness:0.2 })
+);
+crossguard.position.y = HEAD_H*0.0;
+sword.add(crossguard);
+
+// 劍柄（深色纏柄）
+const grip = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.12, HEAD_H*0.12, HEAD_H*0.8, 16),
+  makeMat(0x2A2A30, { roughness:0.4 })
+);
+grip.position.y = -HEAD_H*0.45;
+sword.add(grip);
+// 纏柄細線
+for (let i=0;i<5;i++){
+  const wrap = new THREE.Mesh(
+    new THREE.TorusGeometry(HEAD_H*0.13, 0.02, 6, 16),
+    makeMat(0x3A3A40, { roughness:0.4 })
+  );
+  wrap.position.y = -HEAD_H*(0.05 + i*0.18);
+  wrap.rotation.x = Math.PI/2;
+  sword.add(wrap);
+}
+// 劍首圓球
+const pommel = new THREE.Mesh(
+  new THREE.SphereGeometry(HEAD_H*0.18, 16, 12),
+  makeMat(COLORS.metal, { metalness:0.95, roughness:0.2 })
+);
+pommel.position.y = -HEAD_H*0.9;
+sword.add(pommel);
+
+// 劍格中央三枚碎晶（赤/藍/紫）
+const crystalGroup = new THREE.Group();
+crystalGroup.position.y = HEAD_H*0.15;
+const crystalFire = new THREE.Mesh(
+  new THREE.OctahedronGeometry(HEAD_H*0.1),
+  makeMat(COLORS.fire, { emissive:COLORS.fire, emissiveIntensity:2.0 })
+);
+crystalFire.position.x = -HEAD_H*0.25;
+crystalGroup.add(crystalFire);
+const crystalIce = new THREE.Mesh(
+  new THREE.OctahedronGeometry(HEAD_H*0.1),
+  makeMat(COLORS.ice, { emissive:COLORS.ice, emissiveIntensity:2.0 })
+);
+crystalIce.position.x = 0;
+crystalGroup.add(crystalIce);
+const crystalThunder = new THREE.Mesh(
+  new THREE.OctahedronGeometry(HEAD_H*0.1),
+  makeMat(COLORS.thunder, { emissive:COLORS.thunder, emissiveIntensity:2.0 })
+);
+crystalThunder.position.x = HEAD_H*0.25;
+crystalGroup.add(crystalThunder);
+sword.add(crystalGroup);
+
+// 劍刃中段凹槽（顯示元素符號）
+const swordGrove = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.04, HEAD_H*2.5, HEAD_H*0.01),
+  makeMat(0x1B1E24, { roughness:0.2 })
+);
+swordGrove.position.y = HEAD_H*1.6;
+sword.add(swordGrove);
+add(sword, 'sword');
+
+// ===== 雙腿（深灰貼腿長褲 + 機械護膝）=====
+const leftLeg = new THREE.Group();
+leftLeg.position.set(-HEAD_H*0.45, TOTAL_HEIGHT - HEAD_H*6.5, 0);
+// 大腿
+const leftThigh = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.4, HEAD_H*0.35, HEAD_H*1.6, 12),
+  makeMat(COLORS.pants, { roughness:0.75 })
+);
+leftThigh.position.y = -HEAD_H*0.8;
+leftLeg.add(leftThigh);
+// 小腿
+const leftCalf = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.28, HEAD_H*1.6, 12),
+  makeMat(COLORS.pants, { roughness:0.75 })
+);
+leftCalf.position.y = -HEAD_H*2.4;
+leftLeg.add(leftCalf);
+// 膝部機械護具
+const leftKneeGuard = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.5, HEAD_H*0.4, HEAD_H*0.4),
+  makeMat(COLORS.metalDark, { metalness:0.85, roughness:0.3 })
+);
+leftKneeGuard.position.set(0, -HEAD_H*1.6, HEAD_H*0.2);
+leftLeg.add(leftKneeGuard);
+const leftKneeDetail = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.12, HEAD_H*0.12, HEAD_H*0.5, 12),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+leftKneeDetail.rotation.x = Math.PI/2;
+leftKneeDetail.position.set(0, -HEAD_H*1.6, HEAD_H*0.35);
+leftLeg.add(leftKneeDetail);
+add(leftLeg, 'leftLeg');
+
+const rightLeg = new THREE.Group();
+rightLeg.position.set(HEAD_H*0.45, TOTAL_HEIGHT - HEAD_H*6.5, 0);
+const rightThigh = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.4, HEAD_H*0.35, HEAD_H*1.6, 12),
+  makeMat(COLORS.pants, { roughness:0.75 })
+);
+rightThigh.position.y = -HEAD_H*0.8;
+rightLeg.add(rightThigh);
+const rightCalf = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.28, HEAD_H*1.6, 12),
+  makeMat(COLORS.pants, { roughness:0.75 })
+);
+rightCalf.position.y = -HEAD_H*2.4;
+rightLeg.add(rightCalf);
+const rightKneeGuard = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.5, HEAD_H*0.4, HEAD_H*0.4),
+  makeMat(COLORS.metalDark, { metalness:0.85, roughness:0.3 })
+);
+rightKneeGuard.position.set(0, -HEAD_H*1.6, HEAD_H*0.2);
+rightLeg.add(rightKneeGuard);
+const rightKneeDetail = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.12, HEAD_H*0.12, HEAD_H*0.5, 12),
+  makeMat(COLORS.metal, { metalness:0.9, roughness:0.2 })
+);
+rightKneeDetail.rotation.x = Math.PI/2;
+rightKneeDetail.position.set(0, -HEAD_H*1.6, HEAD_H*0.35);
+rightLeg.add(rightKneeDetail);
+add(rightLeg, 'rightLeg');
+
+// ===== 戰鬥靴（金屬鞋頭）=====
+const leftBoot = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.35, HEAD_H*0.6, 12),
+  makeMat(COLORS.boots, { roughness:0.5 })
+);
+leftBoot.position.set(-HEAD_H*0.45, HEAD_H*0.3, 0);
+add(leftBoot, 'leftBoot');
+// 左金屬鞋頭
+const leftBootTip = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.4, HEAD_H*0.25, HEAD_H*0.7),
+  makeMat(COLORS.metal, { metalness:0.95, roughness:0.2 })
+);
+leftBootTip.position.set(-HEAD_H*0.45, HEAD_H*0.3, HEAD_H*0.3);
+add(leftBootTip, 'leftBootTip');
+
+const rightBoot = new THREE.Mesh(
+  new THREE.CylinderGeometry(HEAD_H*0.32, HEAD_H*0.35, HEAD_H*0.6, 12),
+  makeMat(COLORS.boots, { roughness:0.5 })
+);
+rightBoot.position.set(HEAD_H*0.45, HEAD_H*0.3, 0);
+add(rightBoot, 'rightBoot');
+const rightBootTip = new THREE.Mesh(
+  new THREE.BoxGeometry(HEAD_H*0.4, HEAD_H*0.25, HEAD_H*0.7),
+  makeMat(COLORS.metal, { metalness:0.95, roughness:0.2 })
+);
+rightBootTip.position.set(HEAD_H*0.45, HEAD_H*0.3, HEAD_H*0.3);
+add(rightBootTip, 'rightBootTip');
+
+// ===== 立繪標題（底部顯示三相之劍名）=====
+const inscriptionMat = new THREE.SpriteMaterial({
+  map: (function(){
+    const c = document.createElement('canvas'); c.width=512; c.height=128;
+    const g = c.getContext('2d');
+    g.fillStyle='rgba(0,0,0,0)'; g.fillRect(0,0,512,128);
+    g.font='bold 60px sans-serif';
+    g.textAlign='center';
+    g.strokeStyle='#E0A42E'; g.lineWidth=3;
+    g.strokeText('三相之劍・裂空', 256, 75);
+    g.fillStyle='#fff';
+    g.fillText('三相之劍・裂空', 256, 75);
+    return new THREE.CanvasTexture(c);
+  })(),
+  transparent:true
+});
+const inscription = new THREE.Sprite(inscriptionMat);
+inscription.position.set(0, TOTAL_HEIGHT*0.15, 0);
+inscription.scale.set(TOTAL_HEIGHT*1.0, TOTAL_HEIGHT*0.25, 1);
+rein.add(inscription);
+
+// ============================================================
+// 元素切換 + 動畫狀態機
+// ============================================================
+const EL_NAME = { fire:'熔紅', ice:'冰藍', thunder:'雷紫' };
+let currentElement = 'fire';
+
+function setElement(el){
+  currentElement = el;
+  const col = COLORS[el];
+  // 1. 改胸口發光條紋的對應顏色為最強
+  const stripeFire = rein.userData.parts.chestStripes.children[0];
+  const stripeIce = rein.userData.parts.chestStripes.children[1];
+  const stripeThunder = rein.userData.parts.chestStripes.children[2];
+  const map = {fire:stripeFire, ice:stripeIce, thunder:stripeThunder};
+  // 全部降為 0.5 強度，當前提到 2.0
+  [stripeFire, stripeIce, stripeThunder].forEach(s => {
+    s.material.emissiveIntensity = 0.4;
+  });
+  map[el].material.emissiveIntensity = 2.5;
+  // 2. 劍刃上的對應碎晶變最強
+  const crystals = rein.userData.parts.sword.children;
+  const cFire = crystals[7]; // crystalGroup children: fire, ice, thunder
+  const cIce = crystals[8];
+  const cThunder = crystals[9];
+  [cFire, cIce, cThunder].forEach(c => c.material.emissiveIntensity = 0.8);
+  if (el==='fire') cFire.material.emissiveIntensity = 3.5;
+  if (el==='ice') cIce.material.emissiveIntensity = 3.5;
+  if (el==='thunder') cThunder.material.emissiveIntensity = 3.5;
+  // 3. 整體光暈
+  document.getElementById('el-label').textContent = EL_NAME[el];
+  document.getElementById('el-label').style.color = '#'+col.toString(16).padStart(6,'0');
+  // 4. UI 標記
+  document.querySelectorAll('.el-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-el="${el}"]`).classList.add('active');
+}
+
+// 動畫系統（程序化關節動畫）
+let animState = 'idle';  // idle / walk / attack / burst
+let animT = 0;
+let autoRotate = true;
+
+function setAnim(state){
+  animState = state;
+  animT = 0;
+  document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
+  if (state==='walk') document.getElementById('btn-walk').classList.add('active');
+  if (state==='attack') document.getElementById('btn-attack').classList.add('active');
+  if (state==='burst') document.getElementById('btn-burst').classList.add('active');
+  if (state==='idle') document.getElementById('btn-spin').classList.add('active');
+}
+
+document.querySelectorAll('.el-btn').forEach(b => b.addEventListener('click', () => {
+  setElement(b.dataset.el);
+}));
+document.getElementById('btn-spin').addEventListener('click', () => setAnim('idle'));
+document.getElementById('btn-walk').addEventListener('click', () => setAnim('walk'));
+document.getElementById('btn-attack').addEventListener('click', () => setAnim('attack'));
+document.getElementById('btn-burst').addEventListener('click', () => setAnim('burst'));
+
+// ============================================================
+// 主循環：自動旋轉 + 動畫更新
+// ============================================================
+const clock = new THREE.Clock();
+const initialReinY = TOTAL_HEIGHT*0.5;
+let burstEffectT = 0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  animT += dt;
+  const parts = rein.userData.parts;
+
+  // 整體自動旋轉
+  if (autoRotate && animState === 'idle'){
+    rein.rotation.y += dt * 0.4;
+  }
+
+  // 待機動畫（輕微呼吸起伏 + 頭髮飄動）
+  if (animState === 'idle'){
+    const breathe = Math.sin(animT * 1.8) * 0.005;
+    rein.position.y = breathe;
+    if (parts.hairTail){
+      parts.hairTail.rotation.z = Math.sin(animT * 2) * 0.04;
+    }
+    if (parts.earringGem){
+      parts.earringGem.position.y = -HEAD_H*0.25 + Math.sin(animT*3)*0.005;
+    }
+    // 劍上的元素水晶脈動
+    const crystals = parts.sword.children;
+    [crystals[7], crystals[8], crystals[9]].forEach((c, i) => {
+      c.rotation.y = animT * 1.5;
+      c.scale.setScalar(1 + 0.08 * Math.sin(animT*4 + i));
+    });
+  }
+
+  // 走路動畫（腿擺動 + 重心起伏 + 手臂自然擺動）
+  if (animState === 'walk'){
+    const f = animT * 4;
+    parts.leftLeg.rotation.x = Math.sin(f) * 0.4;
+    parts.rightLeg.rotation.x = -Math.sin(f) * 0.4;
+    parts.leftArm.rotation.x = -Math.sin(f) * 0.3;
+    parts.rightArm.rotation.x = Math.sin(f) * 0.3;
+    parts.leftLeg.position.y = TOTAL_HEIGHT - HEAD_H*6.5 + Math.abs(Math.sin(f))*0.05;
+    parts.rightLeg.position.y = TOTAL_HEIGHT - HEAD_H*6.5 + Math.abs(Math.sin(f+Math.PI))*0.05;
+    // 身體搖晃
+    rein.rotation.z = Math.sin(f) * 0.04;
+    // 劍跟著擺動
+    parts.sword.rotation.z = -Math.PI/4 + Math.sin(f) * 0.1;
+    // 繃帶細節搖擺
+    if (parts.hairTail) parts.hairTail.rotation.z = Math.sin(f*1.5) * 0.12;
+    // 風衣下襬擺動
+    if (parts.coatSkirt){
+      parts.coatSkirt.rotation.y = Math.sin(f*0.7) * 0.05;
+    }
+  }
+
+  // 攻擊動畫（上挑 + 劍刃揮出）
+  if (animState === 'attack'){
+    const f = Math.min(animT / 1.2, 1);
+    const swing = Math.sin(f * Math.PI) * 1.2;
+    parts.rightArm.rotation.x = -swing * 0.6;
+    parts.rightArm.rotation.z = -0.1 + swing * 0.5;
+    parts.sword.position.y = (TOTAL_HEIGHT - HEAD_H*4.5) + swing * 0.3;
+    parts.sword.rotation.z = -Math.PI/4 - swing * 0.8;
+    // 劍刃元素發光
+    const crystals = parts.sword.children;
+    const active = currentElement==='fire' ? crystals[7] : currentElement==='ice' ? crystals[8] : crystals[9];
+    if (active) active.material.emissiveIntensity = 3.5 + swing * 3;
+    if (f >= 1) setAnim('idle');
+  }
+
+  // 絕招動畫（三相光柱 + 發光）
+  if (animState === 'burst'){
+    const f = Math.min(animT / 2.5, 1);
+    burstEffectT = f;
+    // 整體發光脈動
+    const intensity = 1 + Math.sin(animT * 15) * 0.5;
+    const crystals = parts.sword.children;
+    [crystals[7], crystals[8], crystals[9]].forEach((c, i) => {
+      c.material.emissiveIntensity = 3 + intensity + i*0.5;
+      c.scale.setScalar(1 + f*0.3 + intensity*0.1);
+    });
+    parts.chestStripes.children.forEach((s, i) => {
+      s.material.emissiveIntensity = 1.5 + intensity;
+    });
+    if (parts.rightSleeveEmblem){
+      parts.rightSleeveEmblem.material.emissiveIntensity = 2.5 + intensity;
+    }
+    // 整體微微發抖
+    rein.position.y = Math.sin(animT*30)*0.005;
+    if (f >= 1) setAnim('idle');
+  }
+
+  // 走路動畫回正
+  if (animState !== 'walk'){
+    parts.leftLeg.rotation.x *= 0.85;
+    parts.rightLeg.rotation.x *= 0.85;
+    parts.leftArm.rotation.x *= 0.85;
+    parts.rightArm.rotation.x *= 0.85;
+    parts.leftLeg.position.y = TOTAL_HEIGHT - HEAD_H*6.5;
+    parts.rightLeg.position.y = TOTAL_HEIGHT - HEAD_H*6.5;
+    rein.rotation.z *= 0.85;
+  }
+  if (animState !== 'attack'){
+    parts.rightArm.rotation.x *= 0.85;
+    parts.rightArm.rotation.z *= 0.85;
+    parts.sword.rotation.z = -Math.PI/4;
+    if (animState !== 'burst'){
+      const crystals = parts.sword.children;
+      [crystals[7], crystals[8], crystals[9]].forEach(c => {
+        if (c.material.emissiveIntensity > 0.8){
+          c.material.emissiveIntensity = Math.max(0.8, c.material.emissiveIntensity - dt*4);
+        }
+      });
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+setElement('fire');
+document.getElementById('status').innerHTML = '<span class="ok">✓ 黎恩 3D 模型建立完成（共 50+ 獨立部位，按設定稿嚴格實作）</span>';
+animate();
+</script>
+</body>
+</html>
