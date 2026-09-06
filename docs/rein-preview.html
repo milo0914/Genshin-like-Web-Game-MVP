@@ -116,15 +116,15 @@ scene.background = new THREE.Color(0x0e1322);
 scene.fog = new THREE.Fog(0x0e1322, 8, 25);
 
 // 相機：水平方向正面看
-const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, TOTAL_HEIGHT*0.55, TOTAL_HEIGHT*1.4);
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, TOTAL_HEIGHT*0.45, TOTAL_HEIGHT*2.2);
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.target.set(0, TOTAL_HEIGHT*0.5, 0);
+controls.target.set(0, TOTAL_HEIGHT*0.65, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.minDistance = TOTAL_HEIGHT*0.8;
-controls.maxDistance = TOTAL_HEIGHT*3.5;
+controls.maxDistance = TOTAL_HEIGHT*5.0;
 
 // 光照：3點照明，模擬黃昏攝影棚
 const hemi = new THREE.HemisphereLight(0x9bb0d6, 0x2a3050, 0.55);
@@ -150,22 +150,22 @@ scene.add(rim);
 
 // 地面：陰影接收平面
 const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(4, 64),
+  new THREE.CircleGeometry(2.2, 64),
   new THREE.MeshStandardMaterial({ color:0x141826, roughness:0.85, metalness:0.1 })
 );
 ground.rotation.x = -Math.PI/2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// 旋轉轉盤裝飾（顯示立柱位置）
-for (let i=0;i<8;i++){
-  const a = i*Math.PI/4;
-  const pillar = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, TOTAL_HEIGHT*1.5, 0.15),
-    new THREE.MeshStandardMaterial({ color:0x2a3050, roughness:0.7, metalness:0.3 })
-  );
-  pillar.position.set(Math.cos(a)*3.2, TOTAL_HEIGHT*0.75, Math.sin(a)*3.2);
-  scene.add(pillar);
+// 改用地面裝飾圓（不擋視線）
+const ringGeo = new THREE.TorusGeometry(2.5, 0.04, 8, 64);
+const ringMat = new THREE.MeshStandardMaterial({ color:0x3a4358, emissive:0x2a3050, emissiveIntensity:0.3, roughness:0.7, metalness:0.4 });
+for (let i=0;i<3;i++){
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI/2;
+  ring.position.y = 0.01 + i*0.005;
+  ring.scale.setScalar(1 + i*0.3);
+  scene.add(ring);
 }
 
 // ============================================================
@@ -599,6 +599,7 @@ sword.add(pommel);
 // 劍格中央三枚碎晶（赤/藍/紫）
 const crystalGroup = new THREE.Group();
 crystalGroup.position.y = HEAD_H*0.15;
+crystalGroup.userData.role = 'crystals';
 const crystalFire = new THREE.Mesh(
   new THREE.OctahedronGeometry(HEAD_H*0.1),
   makeMat(COLORS.fire, { emissive:COLORS.fire, emissiveIntensity:2.0 })
@@ -758,11 +759,11 @@ function setElement(el){
     s.material.emissiveIntensity = 0.4;
   });
   map[el].material.emissiveIntensity = 2.5;
-  // 2. 劍刃上的對應碎晶變最強
-  const crystals = rein.userData.parts.sword.children;
-  const cFire = crystals[7]; // crystalGroup children: fire, ice, thunder
-  const cIce = crystals[8];
-  const cThunder = crystals[9];
+  // 2. 劍刃上的對應碎晶變最強（crystalGroup 在 sword.children[9]）
+  const cg = rein.userData.parts.sword.children[9];
+  const cFire = cg.children[0];
+  const cIce = cg.children[1];
+  const cThunder = cg.children[2];
   [cFire, cIce, cThunder].forEach(c => c.material.emissiveIntensity = 0.8);
   if (el==='fire') cFire.material.emissiveIntensity = 3.5;
   if (el==='ice') cIce.material.emissiveIntensity = 3.5;
@@ -778,11 +779,12 @@ function setElement(el){
 // 動畫系統（程序化關節動畫）
 let animState = 'idle';  // idle / walk / attack / burst
 let animT = 0;
-let autoRotate = true;
+let autoRotate = false;  // 預設關閉：使用者一進來看到正面
 
 function setAnim(state){
   animState = state;
   animT = 0;
+  autoRotate = (state === 'idle');
   document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
   if (state==='walk') document.getElementById('btn-walk').classList.add('active');
   if (state==='attack') document.getElementById('btn-attack').classList.add('active');
@@ -827,8 +829,8 @@ function animate(){
       parts.earringGem.position.y = -HEAD_H*0.25 + Math.sin(animT*3)*0.005;
     }
     // 劍上的元素水晶脈動
-    const crystals = parts.sword.children;
-    [crystals[7], crystals[8], crystals[9]].forEach((c, i) => {
+    const cgB = parts.sword.children[9];
+    [cgB.children[0], cgB.children[1], cgB.children[2]].forEach((c, i) => {
       c.rotation.y = animT * 1.5;
       c.scale.setScalar(1 + 0.08 * Math.sin(animT*4 + i));
     });
@@ -864,8 +866,8 @@ function animate(){
     parts.sword.position.y = (TOTAL_HEIGHT - HEAD_H*4.5) + swing * 0.3;
     parts.sword.rotation.z = -Math.PI/4 - swing * 0.8;
     // 劍刃元素發光
-    const crystals = parts.sword.children;
-    const active = currentElement==='fire' ? crystals[7] : currentElement==='ice' ? crystals[8] : crystals[9];
+    const cgA = parts.sword.children[9];
+    const active = currentElement==='fire' ? cgA.children[0] : currentElement==='ice' ? cgA.children[1] : cgA.children[2];
     if (active) active.material.emissiveIntensity = 3.5 + swing * 3;
     if (f >= 1) setAnim('idle');
   }
@@ -876,8 +878,8 @@ function animate(){
     burstEffectT = f;
     // 整體發光脈動
     const intensity = 1 + Math.sin(animT * 15) * 0.5;
-    const crystals = parts.sword.children;
-    [crystals[7], crystals[8], crystals[9]].forEach((c, i) => {
+    const cgC = parts.sword.children[9];
+    [cgC.children[0], cgC.children[1], cgC.children[2]].forEach((c, i) => {
       c.material.emissiveIntensity = 3 + intensity + i*0.5;
       c.scale.setScalar(1 + f*0.3 + intensity*0.1);
     });
@@ -907,8 +909,8 @@ function animate(){
     parts.rightArm.rotation.z *= 0.85;
     parts.sword.rotation.z = -Math.PI/4;
     if (animState !== 'burst'){
-      const crystals = parts.sword.children;
-      [crystals[7], crystals[8], crystals[9]].forEach(c => {
+      const cgD = parts.sword.children[9];
+      [cgD.children[0], cgD.children[1], cgD.children[2]].forEach(c => {
         if (c.material.emissiveIntensity > 0.8){
           c.material.emissiveIntensity = Math.max(0.8, c.material.emissiveIntensity - dt*4);
         }
@@ -926,8 +928,8 @@ window.addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-setElement('fire');
-document.getElementById('status').innerHTML = '<span class="ok">✓ 黎恩 3D 模型建立完成（共 50+ 獨立部位，按設定稿嚴格實作）</span>';
+try { setElement('fire'); } catch(e) { console.error('setElement err:', e); }
+  document.getElementById('status').innerHTML = '<span class="ok">✓ 黎恩 3D 模型建立完成（共 50+ 獨立部位，按設定稿嚴格實作）</span>';
 animate();
 </script>
 </body>

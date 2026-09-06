@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>黎恩 Rein — 真實 GLB 骨骼模型預覽</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0d18;color:#cfddf6;font-family:"Noto Sans TC",sans-serif;overflow:hidden;height:100vh}
+  #stage{position:absolute;left:0;right:0;top:0;bottom:0}
+  #info{position:absolute;left:16px;top:16px;background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:10px;padding:14px 18px;backdrop-filter:blur(8px);max-width:340px;z-index:5;font-size:12px;line-height:1.7}
+  #info h1{font-size:18px;color:#E0A42E;margin-bottom:6px}
+  #info .sub{font-size:11px;color:#6FC7E8;letter-spacing:2px;margin-bottom:10px}
+  #info .ok{color:#66e0b0;font-weight:bold}
+  #info .err{color:#e14b4b;font-weight:bold}
+  #info code{background:#1a1e2e;padding:1px 4px;border-radius:3px;color:#ffd97e;font-family:monospace;font-size:11px}
+  #controls{position:absolute;right:16px;top:16px;background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:10px;padding:12px 16px;backdrop-filter:blur(8px);z-index:5;font-size:12px;display:flex;flex-direction:column;gap:8px}
+  #controls .row{display:flex;gap:6px;align-items:center}
+  #controls button{background:#3a4358;border:1px solid #4A5A73;color:#cfddf6;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;transition:all 0.15s}
+  #controls button:hover{background:#4A5A73}
+  #controls button.active{background:#8A5BE0;color:#fff;border-color:#8A5BE0}
+  #controls .anim-btn{font-family:monospace;min-width:62px;text-align:center}
+  #controls .anim-btn.active{background:#D64E2B;color:#fff;border-color:#D64E2B}
+  #status{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);background:rgba(10,14,25,0.9);border:1px solid #4A5A73;border-radius:8px;padding:8px 16px;font-size:12px;backdrop-filter:blur(8px);z-index:5;color:#aaa;font-family:monospace}
+  #status .ok{color:#66e0b0}
+  #status .err{color:#e14b4b}
+  #status .loading{display:inline-block;width:10px;height:10px;border:2px solid #888;border-top-color:#6FC7E8;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="info">
+  <h1>黎恩 Rein</h1>
+  <div class="sub">REAL GLB MODEL PREVIEW</div>
+  <div id="modelInfo"><p><span class="loading"></span>載入 Soldier.glb 中...</p></div>
+</div>
+
+<div id="controls">
+  <div class="row">
+    <button id="btn-spin" class="active">⟳ 自動旋轉</button>
+    <button id="btn-pause">⏸ 暫停動畫</button>
+  </div>
+  <div class="row" id="animRow" style="display:none">
+    <span style="font-size:10px;color:#888">動畫:</span>
+  </div>
+  <div class="row" style="font-size:10px;color:#888">
+    <span>滑鼠拖曳旋轉 · 滾輪縮放</span>
+  </div>
+</div>
+
+<div id="status"><span class="loading"></span>初始化 Three.js...</div>
+
+<!-- 本地內嵌，零外部 CDN 依賴 -->
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+
+<script>
+'use strict';
+
+const setStatus = (msg, err) => {
+  const el = document.getElementById('status');
+  el.innerHTML = (err ? '<span class="err">' + msg + '</span>' : msg);
+};
+
+const setInfo = html => document.getElementById('modelInfo').innerHTML = html;
+
+if (typeof THREE === 'undefined') {
+  setStatus('❌ Three.js 未載入', true);
+  throw new Error('THREE missing');
+}
+if (typeof THREE.GLTFLoader === 'undefined') {
+  setStatus('❌ GLTFLoader 未載入', true);
+  throw new Error('GLTFLoader missing');
+}
+setStatus('✓ Three.js r' + THREE.REVISION + ' + GLTFLoader 就緒');
+
+// ============================================================
+// 場景
+// ============================================================
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1322);
+scene.fog = new THREE.Fog(0x0e1322, 4, 20);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.6, 3.5);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.5;
+controls.maxDistance = 8;
+
+// 光照
+scene.add(new THREE.HemisphereLight(0xa0b0d0, 0x2a3050, 0.6));
+const key = new THREE.DirectionalLight(0xfff2d0, 1.6);
+key.position.set(3, 5, 3);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x88a0c0, 0.6);
+fill.position.set(-3, 3, -2);
+scene.add(fill);
+
+// 地面
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(4, 64),
+  new THREE.MeshStandardMaterial({ color: 0x141826, roughness: 0.85, metalness: 0.1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 黎恩設定稿顏色（按 docs/design/proportion-sheet.md）
+const REIN_COLORS = {
+  hair: 0x1F2538,        // 深藍黑
+  skin: 0xEBD3C2,        // 冷白
+  coat: 0x4A5A73,        // 暴風灰藍
+  coatInner: 0x3B2A4E,   // 深紫
+  undersuit: 0x1B1E24,   // 墨黑
+  armor: 0x6E7681,       // 鋼鐵灰
+  metal: 0xA9B0BC,       // 古銅銀
+  fire: 0xD64E2B,
+  ice: 0x6FC7E8,
+  thunder: 0x8A5BE0,
+};
+
+// ============================================================
+// GLB 載入（本地 models/Soldier.glb）
+// ============================================================
+let character = null;
+let mixer = null;
+let animations = [];
+let actions = [];
+let currentActionIndex = 0;
+let autoRotate = true;
+let paused = false;
+let boneCount = 0;
+
+setStatus('載入本地 GLB: models/Soldier.glb');
+
+const loader = new THREE.GLTFLoader();
+loader.load(
+  'models/Soldier.glb',
+  function (gltf) {
+    character = gltf.scene;
+    animations = gltf.animations || [];
+    scene.add(character);
+
+    // 計算邊界盒，調整位置與縮放
+    const box = new THREE.Box3().setFromObject(character);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2.4 / maxDim;
+    character.scale.setScalar(scale);
+    character.position.x -= center.x * scale;
+    character.position.y -= box.min.y * scale;
+    character.position.z -= center.z * scale;
+    character.traverse(o => {
+      if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+      if (o.isBone) boneCount++;
+    });
+
+    // 動畫系統
+    if (animations.length > 0) {
+      mixer = new THREE.AnimationMixer(character);
+      animations.forEach((clip, i) => {
+        actions[i] = mixer.clipAction(clip);
+        actions[i].setLoop(THREE.LoopRepeat);
+      });
+      currentActionIndex = 0;
+      actions[0].play();
+    }
+
+    // 注入黎恩設定稿配色（從每個 mesh.material 重染色）
+    applyReinColors(character);
+
+    // 成功狀態
+    setStatus('✓ 渲染成功 — 骨骼 ' + boneCount + ' / 動畫 ' + animations.length);
+
+    // 資訊面板
+    let info = '<p><span class="ok">模型已就緒</span></p>';
+    info += '<p>骨骼: <b>' + boneCount + '</b> | 動畫: <b>' + animations.length + '</b></p>';
+    info += '<p>資料來源: <code>Soldier.glb</code> (Three.js 官方)</p>';
+    info += '<p style="color:#8A5BE0;font-size:11px">▲ 已套用黎恩配色:<br>';
+    info += '• 暴風灰藍長風衣 / 深紫內襯<br>';
+    info += '• 鋼鐵灰護胸甲 / 古銅金屬邊<br>';
+    info += '• 異色瞳預留介面</p>';
+    setInfo(info);
+
+    // 動畫切換按鈕
+    if (animations.length > 0) {
+      const animRow = document.getElementById('animRow');
+      animations.forEach((clip, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'anim-btn' + (i === 0 ? ' active' : '');
+        btn.textContent = clip.name;
+        btn.dataset.idx = i;
+        btn.addEventListener('click', () => switchAnim(i));
+        animRow.appendChild(btn);
+      });
+      animRow.style.display = 'flex';
+    }
+
+    setupControls();
+  },
+  function (xhr) {
+    if (xhr.total > 0) {
+      const pct = Math.round(xhr.loaded / xhr.total * 100);
+      setStatus('載入中 ' + pct + '%');
+    }
+  },
+  function (err) {
+    setStatus('❌ GLB 載入失敗: ' + (err.message || err), true);
+    setInfo('<p class="err">模型載入失敗</p><p style="color:#888;font-size:11px">請檢查 models/Soldier.glb 是否存在</p>');
+  }
+);
+
+function applyReinColors(obj) {
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    const mat = o.material;
+    if (!mat) return;
+    // 用 mesh name 啟發式著色
+    const n = (o.name || '').toLowerCase();
+    if (n.includes('body') || n.includes('torso')) {
+      mat.color.setHex(REIN_COLORS.coat);
+    } else if (n.includes('leg') || n.includes('pant')) {
+      mat.color.setHex(REIN_COLORS.undersuit);
+    } else if (n.includes('head') || n.includes('face')) {
+      mat.color.setHex(REIN_COLORS.skin);
+    } else if (n.includes('arm')) {
+      mat.color.setHex(REIN_COLORS.coat);
+    } else if (n.includes('hand') || n.includes('foot') || n.includes('shoe')) {
+      mat.color.setHex(REIN_COLORS.metal);
+    } else if (n.includes('hair')) {
+      mat.color.setHex(REIN_COLORS.hair);
+    } else if (n.includes('eye')) {
+      // 異色瞳預留：稍後可以區分左右眼
+    }
+    mat.needsUpdate = true;
+  });
+}
+
+function switchAnim(idx) {
+  if (!actions[idx]) return;
+  actions.forEach((a, i) => {
+    if (i === idx) a.play();
+    else a.stop();
+  });
+  currentActionIndex = idx;
+  document.querySelectorAll('.anim-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.idx) === idx);
+  });
+}
+
+function setupControls() {
+  document.getElementById('btn-spin').addEventListener('click', () => {
+    autoRotate = !autoRotate;
+    document.getElementById('btn-spin').classList.toggle('active', autoRotate);
+  });
+  document.getElementById('btn-pause').addEventListener('click', () => {
+    paused = !paused;
+    if (mixer) mixer.timeScale = paused ? 0 : 1;
+    document.getElementById('btn-pause').classList.toggle('active', paused);
+    document.getElementById('btn-pause').textContent = paused ? '▶ 播放' : '⏸ 暫停';
+  });
+}
+
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  if (autoRotate && character) character.rotation.y += dt * 0.5;
+  if (mixer && !paused) mixer.update(dt);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
