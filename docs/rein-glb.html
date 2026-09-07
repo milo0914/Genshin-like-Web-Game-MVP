@@ -141,31 +141,48 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   // Soldier.glb 的 vanguard_Mesh 有 1024×1024 diffuse + normal map
   // 這些貼圖讓我的 color override 看不見
   // 解法: 移除貼圖後才能正確覆蓋顏色
+  let skinCount = 0, coatCount = 0, materialCount = 0;
   character.traverse(o => {
     if (!o.isMesh || !o.material) return;
     o.castShadow = true;
     o.receiveShadow = true;
     const mat = o.material;
     const n = (o.name||'').toLowerCase();
+    materialCount++;
 
     // === 紋理剝離 + 顏色覆寫 ===
+    // 確保 material 有有效的 color
+    if (!mat.color) {
+      mat.color = new THREE.Color(C.coat);
+    }
+    
     mat.map = null;
     mat.normalMap = null;
     mat.emissiveMap = null;
-    mat.needsUpdate = true;
+    mat.emissive = new THREE.Color(0x000000);
     
     // 根據網格名稱判斷顏色
-    if (n.includes('visor') || n.includes('face') || n.includes('hand') || 
-        n.includes('finger') || n.includes('ear') || n.includes('neck')) {
+    const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || 
+                   n.includes('finger') || n.includes('ear') || n.includes('neck') ||
+                   n.includes('skin') || n.includes('head') || n.includes('eye') ||
+                   n.includes('nose') || n.includes('mouth') || n.includes('chin') ||
+                   n.includes('forearm') || n.includes('upperarm') || n.includes('thigh') ||
+                   n.includes('calf') || n.includes('foot') || n.includes('toe');
+    
+    if (isSkin) {
       mat.color.setHex(C.skin);
       mat.metalness = 0.0;
       mat.roughness = 0.7;
+      skinCount++;
     } else {
       mat.color.setHex(C.coat);
       mat.metalness = 0.05;
       mat.roughness = 0.8;
+      coatCount++;
     }
+    mat.needsUpdate = true;
   });
+  console.log(`Materials: ${materialCount}, Skin: ${skinCount}, Coat: ${coatCount}`);
 
   if (animations.length > 0) {
     mixer = new THREE.AnimationMixer(character);
