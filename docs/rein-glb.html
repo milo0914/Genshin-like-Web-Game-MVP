@@ -239,10 +239,59 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   const meshesAfterAccessories = findAllMeshes(character).length;
   console.log(`Meshes before accessories: ${meshesBeforeAccessories}, after: ${meshesAfterAccessories}`);
 
+  // 再次運行 color override，處理所有配件 mesh
+  let accessorySkinCount = 0, accessoryCoatCount = 0;
+  character.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const mat = o.material;
+    const n = (o.name||'').toLowerCase();
+    
+    // 確保 material 有有效的 color
+    if (!mat.color) {
+      mat.color = new THREE.Color(C.coat);
+    }
+    
+    mat.map = null;
+    mat.normalMap = null;
+    mat.emissiveMap = null;
+    mat.emissive = new THREE.Color(0x000000);
+    
+    // 配件使用不同的顏色邏輯
+    const isAccessory = n.includes('crystal') || n.includes('element') || 
+                        n.includes('sword') || n.includes('scabbard') ||
+                        n.includes('belt') || n.includes('buckle') ||
+                        n.includes('clamp') || n.includes('clasp') ||
+                        n.includes('boot') || n.includes('horn');
+    
+    if (isAccessory) {
+      // 配件使用金屬色或元素色
+      if (n.includes('ice')) {
+        mat.color.setHex(C.ice);
+      } else if (n.includes('thunder')) {
+        mat.color.setHex(C.thunder);
+      } else if (n.includes('fire')) {
+        mat.color.setHex(C.fire);
+      } else {
+        mat.color.setHex(C.metal);
+      }
+      mat.metalness = 0.9;
+      mat.roughness = 0.2;
+      accessorySkinCount++;
+    } else {
+      // 其他配件使用 coat 顏色
+      mat.color.setHex(C.coat);
+      mat.metalness = 0.05;
+      mat.roughness = 0.8;
+      accessoryCoatCount++;
+    }
+    mat.needsUpdate = true;
+  });
+  console.log(`Accessory override: ${accessorySkinCount} element/metal, ${accessoryCoatCount} coat`);
+
   let bones = 0;
   character.traverse(o => { if (o.isBone) bones++; });
 
-  setStatus(`✓ 渲染成功 — ${bones} 骨骼 / ${animations.length} 動畫 / 紋理已剝離 / 黎恩配色已套用`);
+  setStatus(`✓ 渲染成功 — ${bones} 骨骼 / ${animations.length} 動畫 / 紋理已剝離 / ${meshesAfterAccessories} mesh / 黎恩配色已套用`);
   setupUI();
 }, undefined, (err) => {
   setStatus('❌ 載入失敗: ' + (err.message||err), true);
