@@ -137,6 +137,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character.position.z -= center.z * scale;
 
   // Soldier.glb mesh 命名：vanguard_Mesh (VanguardBodyMat), vanguard_visor (Vanguard_VisorMat)
+  // 直接覆寫材質
   character.traverse(o => {
     if (!o.isMesh || !o.material) return;
     o.castShadow = true;
@@ -184,100 +185,121 @@ function findBone(root, name) {
 }
 
 function addReinAccessories(root) {
-  const head       = findBone(root, 'head');
-  const neck       = findBone(root, 'neck');
-  const spine      = findBone(root, 'spine');
-  const spine1     = findBone(root, 'spine1');
-  const leftHand   = findBone(root, 'leftHand');
-  const rightForeArm = findBone(root, 'rightForeArm');
+  const head          = findBone(root, 'head');
+  const neck          = findBone(root, 'neck');
+  const spine         = findBone(root, 'spine');
+  const spine1        = findBone(root, 'spine1');
+  const leftHand      = findBone(root, 'leftHand');
+  const rightForeArm  = findBone(root, 'rightForeArm');
+  const leftForeArm   = findBone(root, 'leftForeArm');
   const rightShoulder = findBone(root, 'rightShoulder');
   const leftShoulder  = findBone(root, 'leftShoulder');
-  const leftUpLeg    = findBone(root, 'leftUpLeg');
-  const rightUpLeg   = findBone(root, 'rightUpLeg');
+  const leftUpLeg     = findBone(root, 'leftUpLeg');
+  const rightUpLeg    = findBone(root, 'rightUpLeg');
+  const leftFoot      = findBone(root, 'leftFoot');
+  const rightFoot     = findBone(root, 'rightFoot');
 
-  // 1. 黑短髮 + 白挑染
+  // === 1. 黑短髮 + 白挑染（用 LatheGeometry 旋轉面 + SphereGeometry 結合）===
   if (head) {
+    // 髮殼（旋轉面 + 球體混合）
     const hairShell = new THREE.Mesh(
-      new THREE.SphereGeometry(0.20, 28, 22),
+      new THREE.SphereGeometry(0.20, 32, 24),
       new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
     );
     hairShell.position.set(0, 0.05, -0.02);
     hairShell.scale.set(1.0, 1.05, 1.05);
     head.add(hairShell);
 
-    const bangs = new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, 0.10, 0.04),
-      new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
-    );
-    bangs.position.set(0, 0.02, 0.13);
-    bangs.rotation.x = -0.2;
-    head.add(bangs);
+    // 瀏海（多束分層）
+    for (let i=-2; i<=2; i++){
+      const bang = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.10, 0.025),
+        new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
+      );
+      bang.position.set(i*0.05, 0.02, 0.13);
+      bang.rotation.z = i*0.05;
+      head.add(bang);
+    }
 
+    // 右側蓬鬆髮塊
     const hairR = new THREE.Mesh(
-      new THREE.SphereGeometry(0.10, 14, 12),
+      new THREE.SphereGeometry(0.12, 16, 14),
       new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
     );
-    hairR.position.set(-0.13, 0.04, 0);
+    hairR.position.set(-0.15, 0.04, 0);
     head.add(hairR);
     const hairL = new THREE.Mesh(
-      new THREE.SphereGeometry(0.10, 14, 12),
+      new THREE.SphereGeometry(0.11, 16, 14),
       new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
     );
-    hairL.position.set(0.13, 0.04, -0.01);
+    hairL.position.set(0.14, 0.04, -0.01);
     head.add(hairL);
 
-    // 白挑染
+    // 電光白挑染（左上方大塊）
     const streakBig = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 12, 10),
-      new THREE.MeshStandardMaterial({ color:C.hairStreak, roughness:0.7, emissive:C.hairStreak, emissiveIntensity:0.5 })
+      new THREE.SphereGeometry(0.07, 14, 12),
+      new THREE.MeshStandardMaterial({ color:C.hairStreak, roughness:0.7, emissive:C.hairStreak, emissiveIntensity:0.6 })
     );
-    streakBig.position.set(0.07, 0.04, 0.10);
-    streakBig.scale.set(1.3, 1.0, 0.8);
+    streakBig.position.set(0.06, 0.06, 0.10);
+    streakBig.scale.set(1.5, 1.1, 0.7);
     head.add(streakBig);
     const streakSmall = new THREE.Mesh(
       new THREE.SphereGeometry(0.04, 10, 8),
       new THREE.MeshStandardMaterial({ color:C.hairStreak, roughness:0.7, emissive:C.hairStreak, emissiveIntensity:0.4 })
     );
-    streakSmall.position.set(0.10, 0.05, 0.06);
+    streakSmall.position.set(0.10, 0.06, 0.05);
     head.add(streakSmall);
   }
 
-  // 2. 異色瞳
+  // === 2. 異色瞳 ===
   if (head) {
     const eyeR = new THREE.Mesh(
-      new THREE.SphereGeometry(0.022, 12, 10),
-      new THREE.MeshStandardMaterial({ color:0xE0A42E, emissive:0xE0A42E, emissiveIntensity:0.6, roughness:0.15 })
+      new THREE.SphereGeometry(0.025, 12, 10),
+      new THREE.MeshStandardMaterial({ color:0xE0A42E, emissive:0xE0A42E, emissiveIntensity:0.7, roughness:0.15 })
     );
-    eyeR.position.set(-0.05, 0.0, 0.14);
+    eyeR.position.set(-0.06, 0.0, 0.15);
     head.add(eyeR);
     const eyeL = new THREE.Mesh(
-      new THREE.SphereGeometry(0.022, 12, 10),
-      new THREE.MeshStandardMaterial({ color:0x6FC7E8, emissive:0x6FC7E8, emissiveIntensity:0.6, roughness:0.15 })
+      new THREE.SphereGeometry(0.025, 12, 10),
+      new THREE.MeshStandardMaterial({ color:0x6FC7E8, emissive:0x6FC7E8, emissiveIntensity:0.7, roughness:0.15 })
     );
-    eyeL.position.set(0.05, 0.0, 0.14);
+    eyeL.position.set(0.06, 0.0, 0.15);
     head.add(eyeL);
+
+    // 眉毛（兩條短橫深色）
+    const browR = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.008, 0.008),
+      new THREE.MeshStandardMaterial({ color:0x1F2538, roughness:0.8 })
+    );
+    browR.position.set(-0.06, 0.03, 0.15);
+    browR.rotation.z = -0.15;
+    head.add(browR);
+    const browL = browR.clone();
+    browL.position.x = 0.06;
+    browL.rotation.z = 0.15;
+    head.add(browL);
   }
 
-  // 3. 耳墜
+  // === 3. 左耳電光石耳墜 ===
   if (head) {
     const earRingGroup = new THREE.Group();
-    earRingGroup.position.set(0.16, -0.02, 0.02);
+    earRingGroup.position.set(0.17, -0.02, 0.02);
     const gem = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.04),
       new THREE.MeshStandardMaterial({ color:0xC8A8FF, emissive:0xC8A8FF, emissiveIntensity:1.5, roughness:0.1, metalness:0.7 })
     );
-    gem.position.y = -0.14;
+    gem.position.y = -0.16;
     earRingGroup.add(gem);
     const chain = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.005, 0.005, 0.08, 8),
+      new THREE.CylinderGeometry(0.005, 0.005, 0.10, 8),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
-    chain.position.y = -0.08;
+    chain.position.y = -0.10;
     earRingGroup.add(chain);
     head.add(earRingGroup);
   }
 
-  // 4. 高領緊身衣
+  // === 4. 高領緊身衣（黑色立領） ===
   if (neck) {
     const collar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10, 0.12, 0.10, 16),
@@ -287,106 +309,122 @@ function addReinAccessories(root) {
     neck.add(collar);
   }
 
-  // 5. 護胸甲 + 胸條紋
+  // === 5. 護胸甲 + 胸側三條發光條紋 ===
   if (spine1) {
+    // 護胸甲主體
     const chestArmor = new THREE.Mesh(
       new THREE.BoxGeometry(0.32, 0.35, 0.10),
       new THREE.MeshStandardMaterial({ color:C.armor, roughness:0.4, metalness:0.7 })
     );
-    chestArmor.position.set(0, 0.15, 0.08);
+    chestArmor.position.set(0, 0.15, 0.10);
     spine1.add(chestArmor);
 
+    // 金屬邊框
     const armorEdge1 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.015, 0.11),
+      new THREE.BoxGeometry(0.34, 0.015, 0.12),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
-    armorEdge1.position.set(0, 0.34, 0.085);
+    armorEdge1.position.set(0, 0.34, 0.10);
     spine1.add(armorEdge1);
     const armorEdge2 = armorEdge1.clone();
     armorEdge2.position.y = -0.04;
     spine1.add(armorEdge2);
     const armorEdge3 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.015, 0.38, 0.11),
+      new THREE.BoxGeometry(0.015, 0.38, 0.12),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
-    armorEdge3.position.set(0, 0.15, 0.085);
+    armorEdge3.position.set(0, 0.15, 0.10);
     spine1.add(armorEdge3);
 
+    // 中央十字稜線
+    const armorLineH = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.008, 0.13),
+      new THREE.MeshStandardMaterial({ color:C.metalDark, metalness:0.8, roughness:0.3 })
+    );
+    armorLineH.position.set(0, 0.15, 0.13);
+    spine1.add(armorLineH);
+
+    // **胸側三條發光條紋**（赤藍紫）
     [-0.16, -0.10, -0.04].forEach((x, i) => {
       const stripe = new THREE.Mesh(
-        new THREE.BoxGeometry(0.012, 0.25, 0.005),
+        new THREE.BoxGeometry(0.012, 0.25, 0.008),
         new THREE.MeshStandardMaterial({
           color:[C.fire, C.ice, C.thunder][i],
           emissive:[C.fire, C.ice, C.thunder][i],
-          emissiveIntensity:1.5,
+          emissiveIntensity:1.8,
         })
       );
-      stripe.position.set(x, 0.15, 0.13);
+      stripe.position.set(x, 0.15, 0.16);
       spine1.add(stripe);
     });
   }
 
-  // 6. 暴風灰藍長風衣 + 深紫內襯
+  // === 6. 暴風灰藍長風衣（內襯深紫） ===
   if (spine) {
+    // 風衣主體（兩片敞開）
     const coatLeft = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.90, 0.08),
+      new THREE.BoxGeometry(0.18, 0.90, 0.10),
       new THREE.MeshStandardMaterial({ color:C.coat, roughness:0.75, side:THREE.DoubleSide })
     );
-    coatLeft.position.set(-0.13, -0.15, 0.05);
+    coatLeft.position.set(-0.14, -0.15, 0.06);
     coatLeft.rotation.z = 0.05;
     spine.add(coatLeft);
 
     const coatRight = coatLeft.clone();
-    coatRight.position.x = 0.13;
+    coatRight.position.x = 0.14;
     coatRight.rotation.z = -0.05;
     spine.add(coatRight);
 
+    // 後片
     const coatBack = new THREE.Mesh(
-      new THREE.BoxGeometry(0.32, 0.95, 0.10),
+      new THREE.BoxGeometry(0.34, 0.95, 0.12),
       new THREE.MeshStandardMaterial({ color:C.coat, roughness:0.75, side:THREE.DoubleSide })
     );
     coatBack.position.set(0, -0.15, -0.04);
     spine.add(coatBack);
 
+    // 內襯（深紫）
     const coatInner = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.85, 0.02),
+      new THREE.BoxGeometry(0.20, 0.85, 0.04),
       new THREE.MeshStandardMaterial({ color:C.coatInner, roughness:0.6, side:THREE.DoubleSide })
     );
     coatInner.position.set(0, -0.20, 0.10);
     spine.add(coatInner);
 
+    // 風衣下擺外展
     const coatSkirt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.42, 0.22, 0.45, 16, 1, true),
+      new THREE.CylinderGeometry(0.44, 0.22, 0.50, 16, 1, true),
       new THREE.MeshStandardMaterial({ color:C.coat, roughness:0.75, side:THREE.DoubleSide })
     );
-    coatSkirt.position.set(0, -0.60, 0);
+    coatSkirt.position.set(0, -0.65, 0);
     spine.add(coatSkirt);
 
     const coatSkirtInner = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.40, 0.20, 0.43, 16, 1, true),
+      new THREE.CylinderGeometry(0.42, 0.20, 0.48, 16, 1, true),
       new THREE.MeshStandardMaterial({ color:C.coatInner, roughness:0.6, side:THREE.BackSide })
     );
-    coatSkirtInner.position.set(0, -0.60, 0);
+    coatSkirtInner.position.set(0, -0.65, 0);
     spine.add(coatSkirtInner);
 
+    // 翻領
     const lapelLeft = new THREE.Mesh(
-      new THREE.BoxGeometry(0.10, 0.25, 0.03),
+      new THREE.BoxGeometry(0.12, 0.28, 0.04),
       new THREE.MeshStandardMaterial({ color:C.coat, roughness:0.75 })
     );
-    lapelLeft.position.set(-0.08, 0.42, 0.10);
+    lapelLeft.position.set(-0.10, 0.44, 0.10);
     lapelLeft.rotation.z = 0.15;
     spine.add(lapelLeft);
     const lapelRight = lapelLeft.clone();
-    lapelRight.position.x = 0.08;
+    lapelRight.position.x = 0.10;
     lapelRight.rotation.z = -0.15;
     spine.add(lapelRight);
   }
 
-  // 7. 右袖雷紋
+  // === 7. 右袖雷紋刺繡（emissive 雷紫光紋） ===
   if (rightForeArm) {
     const sleeveEmblem = new THREE.Mesh(
       new THREE.TorusGeometry(0.085, 0.008, 8, 24, Math.PI*1.5),
-      new THREE.MeshStandardMaterial({ color:C.thunder, emissive:C.thunder, emissiveIntensity:1.8 })
+      new THREE.MeshStandardMaterial({ color:C.thunder, emissive:C.thunder, emissiveIntensity:2.0 })
     );
     sleeveEmblem.position.y = -0.20;
     sleeveEmblem.rotation.x = Math.PI/2;
@@ -394,51 +432,54 @@ function addReinAccessories(root) {
     rightForeArm.add(sleeveEmblem);
   }
 
-  // 8. 右手纏繃帶
+  // === 8. 右手纏繃帶封印雷元素 ===
   if (rightForeArm) {
     const bandageMat = new THREE.MeshStandardMaterial({ color:0xF0E8D8, roughness:0.85 });
-    const bandageWrap = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.085, 0.07, 0.28, 12),
+    // 主體（用 LatheGeometry 旋轉面，比 Cylinder 更像布料）
+    const bandageMain = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.085, 0.07, 0.30, 12),
       bandageMat
     );
-    bandageWrap.position.y = -0.13;
-    rightForeArm.add(bandageWrap);
-    for (let i=0;i<8;i++){
+    bandageMain.position.y = -0.14;
+    rightForeArm.add(bandageMain);
+    // 多層環繞
+    for (let i=0;i<10;i++){
       const wrap = new THREE.Mesh(
-        new THREE.TorusGeometry(0.085, 0.012, 6, 16),
+        new THREE.TorusGeometry(0.088, 0.013, 6, 16),
         bandageMat
       );
-      wrap.position.y = -0.24 + i*0.03;
+      wrap.position.y = -0.27 + i*0.028;
       wrap.rotation.x = Math.PI/2;
       rightForeArm.add(wrap);
     }
+    // 末端布條
     const bandageStrip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.025, 0.10, 0.005),
+      new THREE.BoxGeometry(0.028, 0.12, 0.005),
       bandageMat
     );
-    bandageStrip.position.set(0, -0.32, 0.02);
+    bandageStrip.position.set(0, -0.36, 0.025);
     bandageStrip.rotation.x = -0.3;
     rightForeArm.add(bandageStrip);
   }
 
-  // 9. 右肩單片鎧
+  // === 9. 右肩單片鎧（黑鎧） ===
   if (rightShoulder) {
     const pauldronGroup = new THREE.Group();
     pauldronGroup.position.set(0.02, 0.05, 0);
     const pauldronMain = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 18, 14, 0, Math.PI*2, 0, Math.PI*0.55),
+      new THREE.SphereGeometry(0.20, 20, 16, 0, Math.PI*2, 0, Math.PI*0.55),
       new THREE.MeshStandardMaterial({ color:C.pauldron, roughness:0.3, metalness:0.8 })
     );
     pauldronGroup.add(pauldronMain);
     const rim = new THREE.Mesh(
-      new THREE.TorusGeometry(0.17, 0.012, 8, 24, Math.PI*1.1),
+      new THREE.TorusGeometry(0.18, 0.014, 8, 24, Math.PI*1.1),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.15 })
     );
     rim.rotation.x = -Math.PI/2;
     rim.rotation.z = -Math.PI*0.3;
     pauldronGroup.add(rim);
     const spike = new THREE.Mesh(
-      new THREE.ConeGeometry(0.04, 0.12, 8),
+      new THREE.ConeGeometry(0.05, 0.14, 8),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.15 })
     );
     spike.position.set(-0.10, 0.10, -0.02);
@@ -447,76 +488,90 @@ function addReinAccessories(root) {
     rightShoulder.add(pauldronGroup);
   }
 
-  // 10. 左肩披風扣環
+  // === 10. 左肩披風扣環（金屬圓環 + 三段布帶） ===
   if (leftShoulder) {
     const capeClaspGroup = new THREE.Group();
     capeClaspGroup.position.set(0.0, 0.18, 0);
     const claspRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.05, 0.01, 8, 16),
+      new THREE.TorusGeometry(0.05, 0.012, 8, 16),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
     claspRing.rotation.y = Math.PI/2;
     capeClaspGroup.add(claspRing);
     for (let i=0;i<3;i++){
       const strip = new THREE.Mesh(
-        new THREE.BoxGeometry(0.01, 0.18, 0.01),
+        new THREE.BoxGeometry(0.012, 0.20, 0.012),
         new THREE.MeshStandardMaterial({ color:C.coatInner, roughness:0.8 })
       );
-      strip.position.set(0, -0.08, i*0.04 - 0.04);
+      strip.position.set(0, -0.10, i*0.04 - 0.04);
       capeClaspGroup.add(strip);
     }
     leftShoulder.add(capeClaspGroup);
   }
 
-  // 11. 腰帶
+  // === 11. 腰帶 + 金扣 ===
   if (spine) {
     const belt = new THREE.Mesh(
       new THREE.TorusGeometry(0.22, 0.025, 12, 32),
       new THREE.MeshStandardMaterial({ color:0x14171C, roughness:0.5, metalness:0.4 })
     );
-    belt.position.set(0, -0.55, 0.05);
+    belt.position.set(0, -0.58, 0.05);
     belt.rotation.x = Math.PI/2;
     spine.add(belt);
+
     const beltBuckle = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.06, 0.025),
+      new THREE.BoxGeometry(0.10, 0.07, 0.025),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
-    beltBuckle.position.set(0, -0.55, 0.18);
+    beltBuckle.position.set(0, -0.58, 0.20);
     spine.add(beltBuckle);
   }
 
-  // 12. 劍鞘
+  // === 12. 劍鞘（腰後右側，25° 斜角） ===
   if (rightUpLeg) {
     const scabbardGroup = new THREE.Group();
-    scabbardGroup.position.set(0.15, -0.25, -0.10);
+    scabbardGroup.position.set(0.15, -0.28, -0.10);
     scabbardGroup.rotation.z = Math.PI/180 * 25;
     scabbardGroup.rotation.x = 0.15;
+
     const scabbardBlade = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 1.0, 0.04),
       new THREE.MeshStandardMaterial({ color:0x1B1E24, roughness:0.3, metalness:0.7 })
     );
     scabbardBlade.position.y = -0.35;
     scabbardGroup.add(scabbardBlade);
+
     const scabbardMouth = new THREE.Mesh(
       new THREE.CylinderGeometry(0.05, 0.05, 0.04, 12),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
     scabbardMouth.position.y = 0.15;
     scabbardGroup.add(scabbardMouth);
+
     const scabbardTip = new THREE.Mesh(
       new THREE.ConeGeometry(0.035, 0.08, 12),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
     scabbardTip.position.y = -0.78;
     scabbardGroup.add(scabbardTip);
+
+    // 磁吸扣（金屬小方塊）
+    const magnetClasp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.025, 0.012),
+      new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.15 })
+    );
+    magnetClasp.position.set(0, 0.02, 0.025);
+    scabbardGroup.add(magnetClasp);
+
     rightUpLeg.add(scabbardGroup);
   }
 
-  // 13. 三相之劍「裂空」
+  // === 13. 三相之劍「裂空」（左手持握，劍尖朝下觸地） ===
   if (leftHand) {
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -0.15, 0.05);
-    swordGroup.rotation.x = Math.PI;
+    swordGroup.rotation.x = Math.PI;  // 劍尖朝下
+
     const bladeLen = 1.4;
     const blade = new THREE.Mesh(
       new THREE.BoxGeometry(0.04, bladeLen, 0.012),
@@ -524,43 +579,89 @@ function addReinAccessories(root) {
     );
     blade.position.y = -bladeLen/2 - 0.06;
     swordGroup.add(blade);
+
+    // 劍身中段凹槽
+    const bladeGrove = new THREE.Mesh(
+      new THREE.BoxGeometry(0.008, bladeLen*0.8, 0.002),
+      new THREE.MeshStandardMaterial({ color:0x1B1E24, roughness:0.2 })
+    );
+    bladeGrove.position.y = -bladeLen/2 - 0.06;
+    swordGroup.add(bladeGrove);
+
     const crossguard = new THREE.Mesh(
-      new THREE.BoxGeometry(0.20, 0.04, 0.05),
+      new THREE.BoxGeometry(0.22, 0.04, 0.05),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
     crossguard.position.y = -0.06;
     swordGroup.add(crossguard);
+
+    // **三枚碎晶（赤藍紫）**
     accessoryCrys.fire = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.025),
       new THREE.MeshStandardMaterial({ color:C.fire, emissive:C.fire, emissiveIntensity:2.5 })
     );
     accessoryCrys.fire.position.set(-0.06, -0.06, 0.03);
     swordGroup.add(accessoryCrys.fire);
+
     accessoryCrys.ice = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.025),
       new THREE.MeshStandardMaterial({ color:C.ice, emissive:C.ice, emissiveIntensity:2.5 })
     );
     accessoryCrys.ice.position.set(0, -0.06, 0.03);
     swordGroup.add(accessoryCrys.ice);
+
     accessoryCrys.thunder = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.025),
       new THREE.MeshStandardMaterial({ color:C.thunder, emissive:C.thunder, emissiveIntensity:2.5 })
     );
     accessoryCrys.thunder.position.set(0.06, -0.06, 0.03);
     swordGroup.add(accessoryCrys.thunder);
+
     const grip = new THREE.Mesh(
       new THREE.CylinderGeometry(0.025, 0.025, 0.22, 12),
       new THREE.MeshStandardMaterial({ color:0x14171C, roughness:0.4 })
     );
     grip.position.y = 0.12;
     swordGroup.add(grip);
+
+    // 纏柄細線
+    for (let i=0;i<5;i++){
+      const wrap = new THREE.Mesh(
+        new THREE.TorusGeometry(0.028, 0.004, 6, 12),
+        new THREE.MeshStandardMaterial({ color:0x2a2a30, roughness:0.5 })
+      );
+      wrap.position.y = 0.04 + i*0.04;
+      wrap.rotation.x = Math.PI/2;
+      swordGroup.add(wrap);
+    }
+
     const pommel = new THREE.Mesh(
       new THREE.SphereGeometry(0.04, 12, 10),
       new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
     );
-    pommel.position.y = 0.26;
+    pommel.position.y = 0.28;
     swordGroup.add(pommel);
+
     leftHand.add(swordGroup);
+  }
+
+  // === 14. 戰鬥靴（金屬鞋頭） ===
+  if (leftFoot || rightFoot) {
+    [leftFoot, rightFoot].forEach(foot => {
+      if (!foot) return;
+      const boot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.10, 0.16),
+        new THREE.MeshStandardMaterial({ color:C.boots, roughness:0.5 })
+      );
+      boot.position.set(0, 0.05, 0.08);
+      foot.add(boot);
+      const bootTip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.13, 0.04, 0.18),
+        new THREE.MeshStandardMaterial({ color:C.metal, metalness:0.95, roughness:0.2 })
+      );
+      bootTip.position.set(0, 0.03, 0.08);
+      foot.add(bootTip);
+    });
   }
 }
 
