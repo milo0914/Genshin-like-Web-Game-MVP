@@ -186,9 +186,14 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     if (processedMaterials.has(mat)) return;
     processedMaterials.add(mat);
     
-    // 確保 material 有有效的 color
-    if (!mat.color) {
-      console.log(`Material for ${n} has no color, initializing`);
+    // 確保 material 有有效的 color（安全初始化）
+    try {
+      if (!mat.color || mat.color.r === undefined) {
+        mat.color = new THREE.Color(C.coat);
+        console.log(`Initialized color for ${n}`);
+      }
+    } catch(e) {
+      console.log(`Color init error for ${n}: ${e}`);
       mat.color = new THREE.Color(C.coat);
     }
     
@@ -247,7 +252,11 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     const n = (o.name||'').toLowerCase();
     
     // 確保 material 有有效的 color
-    if (!mat.color) {
+    try {
+      if (!mat.color || mat.color.r === undefined) {
+        mat.color = new THREE.Color(C.coat);
+      }
+    } catch(e) {
       mat.color = new THREE.Color(C.coat);
     }
     
