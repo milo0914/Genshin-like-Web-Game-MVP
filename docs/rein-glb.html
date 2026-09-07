@@ -51,9 +51,9 @@
 
 <script>
 const C = {
-  hair: 0x1F2538, hairStreak: 0xE8F1FF,
-  skin: 0xEBD3C2,
-  coat: 0x4A5A73, coatInner: 0x3B2A4E,
+  hair: 0x3D2B1F, hairStreak: 0xE8F1FF,
+  skin: 0xE8C4A0,
+  coat: 0x7A8B9A, coatInner: 0x3B2A4E,
   undersuit: 0x1B1E24, armor: 0x6E7681, pauldron: 0x2A2F38,
   metal: 0xA9B0BC, pants: 0x1B1E24, boots: 0x14171C,
   fire: 0xD64E2B, ice: 0x6FC7E8, thunder: 0x8A5BE0,
@@ -148,23 +148,25 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     const mat = o.material;
     const n = (o.name||'').toLowerCase();
 
-    // === 紋理剝離 + 顏色覆寫 ===
-    if (n.includes('visor')) {
-      // 面罩 → 皮膚色（覆蓋頭盔外觀）
-      mat.map = null;          // ← 剝離紋理！
-      mat.normalMap = null;
-      mat.color = new THREE.Color(C.skin);
-      mat.roughness = 0.75;
-      mat.metalness = 0.0;
+    // === 紋理剝離 + 顏色覆寫（重新創建 material 確保生效）===
+    const newMat = mat.clone();
+    newMat.map = null;
+    newMat.normalMap = null;
+    newMat.emissiveMap = null;
+    
+    if (n.includes('visor') || n.includes('skin') || n.includes('face') || n.includes('hand') || n.includes('arm')) {
+      // 皮膚區域 → 膚色
+      newMat.color.setHex(C.skin);
+      newMat.metalness = 0.0;
+      newMat.roughness = 0.75;
     } else {
-      // 整體軍裝 → 暴風灰藍長風衣主色
-      mat.map = null;          // ← 剝離紋理！
-      mat.normalMap = null;
-      mat.color = new THREE.Color(C.coat);
-      mat.roughness = 0.8;
-      mat.metalness = 0.05;
+      // 服裝區域 → 暴風灰藍
+      newMat.color.setHex(C.coat);
+      newMat.metalness = 0.05;
+      newMat.roughness = 0.8;
     }
-    mat.needsUpdate = true;
+    newMat.needsUpdate = true;
+    o.material = newMat;
   });
 
   if (animations.length > 0) {
