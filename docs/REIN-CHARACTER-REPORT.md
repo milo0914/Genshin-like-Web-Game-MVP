@@ -2,7 +2,7 @@
 
 **Status**: ✅ DEPLOYED & VERIFIED  
 **URL**: https://milo0914.github.io/Genshin-like-Web-Game-MVP/rein-glb.html  
-**Latest Commit**: 0a3e109
+**Latest Commit**: 1b883fc
 
 ---
 
@@ -129,7 +129,7 @@ FOV = 50 degrees;                   // Natural perspective
 **Repository**: https://github.com/milo0914/Genshin-like-Web-Game-MVP  
 **Branch**: main  
 **Pages URL**: https://milo0914.github.io/Genshin-like-Web-Game-MVP/rein-glb.html  
-**Latest Commit**: 0a3e109
+**Latest Commit**: 1b883fc
 
 ---
 
