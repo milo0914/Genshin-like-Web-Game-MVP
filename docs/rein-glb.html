@@ -222,6 +222,9 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   
   console.log(`Final: ${meshCount} meshes processed, ${processedMaterials.size} unique materials, Skin: ${skinCount}, Coat: ${coatCount}`);
 
+  // 在添加配件後再次統計
+  const meshesBeforeAccessories = findAllMeshes(character).length;
+  
   if (animations.length > 0) {
     mixer = new THREE.AnimationMixer(character);
     animations.forEach((clip, i) => {
@@ -232,6 +235,9 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   }
 
   addReinAccessories(character);
+  
+  const meshesAfterAccessories = findAllMeshes(character).length;
+  console.log(`Meshes before accessories: ${meshesBeforeAccessories}, after: ${meshesAfterAccessories}`);
 
   let bones = 0;
   character.traverse(o => { if (o.isBone) bones++; });
