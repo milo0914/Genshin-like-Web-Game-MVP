@@ -134,7 +134,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character.scale.setScalar(scale);
   character.position.x -= center.x * scale;
   character.position.y -= box.min.y * scale;
-  character.position.y += 0.3 * scale;
+  character.position.y += 0.5 * scale;
   character.position.z -= center.z * scale;
 
   // ========== 關鍵突破: 剝離 Soldier 原紋理 ==========
