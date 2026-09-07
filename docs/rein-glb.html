@@ -138,72 +138,25 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character.position.z -= center.z * scale;
 
   // ========== 關鍵突破: 剝離 Soldier 原紋理 ==========
-  // Soldier.glb 的 vanguard_Mesh 有 1024×1024 diffuse + normal map
-  // 這些貼圖讓我的 color override 看不見
-  // 解法: 移除貼圖後才能正確覆蓋顏色
-  // 直接遍歷所有 mesh 並處理 material
-  let meshCount = 0, skinCount = 0, coatCount = 0;
-  const processedMaterials = new Set();
+  // 使用更簡單可靠的方法：直接創建新的 material
+  let totalMeshes = 0, skinMeshes = 0, coatMeshes = 0;
   
-  // 使用 findAllMeshes 確保遍歷所有 mesh
   function findAllMeshes(obj, list = []) {
     if (obj.isMesh) list.push(obj);
     obj.children.forEach(child => findAllMeshes(child, list));
     return list;
   }
   
-  // 先檢查 character 結構
-  console.log('Character type:', character.type);
-  console.log('Character children count:', character.children.length);
-  character.children.forEach((child, i) => {
-    console.log(`Child ${i}: type=${child.type}, name=${child.name}, isMesh=${child.isMesh}`);
-    if (child.isMesh) meshCount++;
-    if (child.children) {
-      child.children.forEach((grandchild, j) => {
-        if (grandchild.isMesh) {
-          console.log(`  Grandchild ${j}: type=${grandchild.type}, name=${grandchild.name}`);
-          meshCount++;
-        }
-      });
-    }
-  });
-  console.log(`Initial mesh count: ${meshCount}`);
-  
   const allMeshes = findAllMeshes(character);
-  console.log(`Found ${allMeshes.length} total meshes via findAllMeshes`);
+  console.log(`Found ${allMeshes.length} total meshes`);
   
   allMeshes.forEach(o => {
-    if (!o.material) {
-      console.log(`Mesh ${o.name} has no material!`);
-      return;
-    }
-    meshCount++;
+    if (!o.material) return;
+    totalMeshes++;
     
-    const mat = o.material;
     const n = (o.name||'').toLowerCase();
     
-    // 跳過已處理的 material（避免重複工作）
-    if (processedMaterials.has(mat)) return;
-    processedMaterials.add(mat);
-    
-    // 確保 material 有有效的 color（安全初始化）
-    try {
-      if (!mat.color || mat.color.r === undefined) {
-        mat.color = new THREE.Color(C.coat);
-        console.log(`Initialized color for ${n}`);
-      }
-    } catch(e) {
-      console.log(`Color init error for ${n}: ${e}`);
-      mat.color = new THREE.Color(C.coat);
-    }
-    
-    // 清除紋理
-    mat.map = null;
-    mat.normalMap = null;
-    mat.emissiveMap = null;
-    mat.emissive = new THREE.Color(0x000000);
-    
-    // 根據網格名稱判斷顏色
+    // 判斷是否是皮膚區域
     const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || 
                    n.includes('finger') || n.includes('ear') || n.includes('neck') ||
                    n.includes('skin') || n.includes('head') || n.includes('eye') ||
@@ -211,21 +164,20 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
                    n.includes('forearm') || n.includes('upperarm') || n.includes('thigh') ||
                    n.includes('calf') || n.includes('foot') || n.includes('toe');
     
-    if (isSkin) {
-      mat.color.setHex(C.skin);
-      mat.metalness = 0.0;
-      mat.roughness = 0.7;
-      skinCount++;
-    } else {
-      mat.color.setHex(C.coat);
-      mat.metalness = 0.05;
-      mat.roughness = 0.8;
-      coatCount++;
-    }
-    mat.needsUpdate = true;
+    // 創建全新的 material（避免修改原有 material 的問題）
+    const newMat = new THREE.MeshStandardMaterial({
+      color: isSkin ? C.skin : C.coat,
+      roughness: isSkin ? 0.7 : 0.8,
+      metalness: isSkin ? 0.0 : 0.05,
+    });
+    
+    o.material = newMat;
+    
+    if (isSkin) skinMeshes++;
+    else coatMeshes++;
   });
   
-  console.log(`Final: ${meshCount} meshes processed, ${processedMaterials.size} unique materials, Skin: ${skinCount}, Coat: ${coatCount}`);
+  console.log(`Processed: ${totalMeshes} meshes (${skinMeshes} skin, ${coatMeshes} coat)`);
 
   // 在添加配件後再次統計
   const meshesBeforeAccessories = findAllMeshes(character).length;
@@ -244,58 +196,44 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   const meshesAfterAccessories = findAllMeshes(character).length;
   console.log(`Meshes before accessories: ${meshesBeforeAccessories}, after: ${meshesAfterAccessories}`);
 
-  // 再次運行 color override，處理所有配件 mesh
-  let accessorySkinCount = 0, accessoryCoatCount = 0;
-  character.traverse(o => {
-    if (!o.isMesh || !o.material) return;
-    const mat = o.material;
+  // 再次為所有配件 mesh 設置 material
+  const allMeshes2 = findAllMeshes(character);
+  let accessoryCount = 0;
+  
+  allMeshes2.forEach(o => {
+    if (!o.material) return;
     const n = (o.name||'').toLowerCase();
     
-    // 確保 material 有有效的 color
-    try {
-      if (!mat.color || mat.color.r === undefined) {
-        mat.color = new THREE.Color(C.coat);
-      }
-    } catch(e) {
-      mat.color = new THREE.Color(C.coat);
-    }
-    
-    mat.map = null;
-    mat.normalMap = null;
-    mat.emissiveMap = null;
-    mat.emissive = new THREE.Color(0x000000);
-    
-    // 配件使用不同的顏色邏輯
+    // 配件使用金屬色或元素色
     const isAccessory = n.includes('crystal') || n.includes('element') || 
                         n.includes('sword') || n.includes('scabbard') ||
                         n.includes('belt') || n.includes('buckle') ||
                         n.includes('clamp') || n.includes('clasp') ||
                         n.includes('boot') || n.includes('horn');
     
+    let color = C.coat;
+    let metalness = 0.05;
+    let roughness = 0.8;
+    
     if (isAccessory) {
-      // 配件使用金屬色或元素色
-      if (n.includes('ice')) {
-        mat.color.setHex(C.ice);
-      } else if (n.includes('thunder')) {
-        mat.color.setHex(C.thunder);
-      } else if (n.includes('fire')) {
-        mat.color.setHex(C.fire);
-      } else {
-        mat.color.setHex(C.metal);
-      }
-      mat.metalness = 0.9;
-      mat.roughness = 0.2;
-      accessorySkinCount++;
-    } else {
-      // 其他配件使用 coat 顏色
-      mat.color.setHex(C.coat);
-      mat.metalness = 0.05;
-      mat.roughness = 0.8;
-      accessoryCoatCount++;
+      if (n.includes('ice')) color = C.ice;
+      else if (n.includes('thunder')) color = C.thunder;
+      else if (n.includes('fire')) color = C.fire;
+      else color = C.metal;
+      metalness = 0.9;
+      roughness = 0.2;
     }
-    mat.needsUpdate = true;
+    
+    // 創建全新的 material
+    o.material = new THREE.MeshStandardMaterial({
+      color: color,
+      roughness: roughness,
+      metalness: metalness,
+    });
+    accessoryCount++;
   });
-  console.log(`Accessory override: ${accessorySkinCount} element/metal, ${accessoryCoatCount} coat`);
+  
+  console.log(`Accessory materials: ${accessoryCount} meshes processed`);
 
   let bones = 0;
   character.traverse(o => { if (o.isBone) bones++; });
