@@ -148,25 +148,23 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     const mat = o.material;
     const n = (o.name||'').toLowerCase();
 
-    // === 紋理剝離 + 顏色覆寫（重新創建 material 確保生效）===
-    const newMat = mat.clone();
-    newMat.map = null;
-    newMat.normalMap = null;
-    newMat.emissiveMap = null;
+    // === 紋理剝離 + 顏色覆寫 ===
+    mat.map = null;
+    mat.normalMap = null;
+    mat.emissiveMap = null;
+    mat.needsUpdate = true;
     
-    if (n.includes('visor') || n.includes('skin') || n.includes('face') || n.includes('hand') || n.includes('arm')) {
-      // 皮膚區域 → 膚色
-      newMat.color.setHex(C.skin);
-      newMat.metalness = 0.0;
-      newMat.roughness = 0.75;
+    // 根據網格名稱判斷顏色
+    if (n.includes('visor') || n.includes('face') || n.includes('hand') || 
+        n.includes('finger') || n.includes('ear') || n.includes('neck')) {
+      mat.color.setHex(C.skin);
+      mat.metalness = 0.0;
+      mat.roughness = 0.7;
     } else {
-      // 服裝區域 → 暴風灰藍
-      newMat.color.setHex(C.coat);
-      newMat.metalness = 0.05;
-      newMat.roughness = 0.8;
+      mat.color.setHex(C.coat);
+      mat.metalness = 0.05;
+      mat.roughness = 0.8;
     }
-    newMat.needsUpdate = true;
-    o.material = newMat;
   });
 
   if (animations.length > 0) {
