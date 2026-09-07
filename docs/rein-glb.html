@@ -152,11 +152,31 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     return list;
   }
   
+  // 先檢查 character 結構
+  console.log('Character type:', character.type);
+  console.log('Character children count:', character.children.length);
+  character.children.forEach((child, i) => {
+    console.log(`Child ${i}: type=${child.type}, name=${child.name}, isMesh=${child.isMesh}`);
+    if (child.isMesh) meshCount++;
+    if (child.children) {
+      child.children.forEach((grandchild, j) => {
+        if (grandchild.isMesh) {
+          console.log(`  Grandchild ${j}: type=${grandchild.type}, name=${grandchild.name}`);
+          meshCount++;
+        }
+      });
+    }
+  });
+  console.log(`Initial mesh count: ${meshCount}`);
+  
   const allMeshes = findAllMeshes(character);
-  console.log(`Found ${allMeshes.length} total meshes`);
+  console.log(`Found ${allMeshes.length} total meshes via findAllMeshes`);
   
   allMeshes.forEach(o => {
-    if (!o.material) return;
+    if (!o.material) {
+      console.log(`Mesh ${o.name} has no material!`);
+      return;
+    }
     meshCount++;
     
     const mat = o.material;
@@ -168,6 +188,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     
     // 確保 material 有有效的 color
     if (!mat.color) {
+      console.log(`Material for ${n} has no color, initializing`);
       mat.color = new THREE.Color(C.coat);
     }
     
@@ -199,7 +220,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
     mat.needsUpdate = true;
   });
   
-  console.log(`Processed: ${meshCount} meshes, ${processedMaterials.size} unique materials, Skin: ${skinCount}, Coat: ${coatCount}`);
+  console.log(`Final: ${meshCount} meshes processed, ${processedMaterials.size} unique materials, Skin: ${skinCount}, Coat: ${coatCount}`);
 
   if (animations.length > 0) {
     mixer = new THREE.AnimationMixer(character);
