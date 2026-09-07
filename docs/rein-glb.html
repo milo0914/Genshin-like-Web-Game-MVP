@@ -164,14 +164,24 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
                    n.includes('forearm') || n.includes('upperarm') || n.includes('thigh') ||
                    n.includes('calf') || n.includes('foot') || n.includes('toe');
     
-    // 創建全新的 material（避免修改原有 material 的問題）
-    const newMat = new THREE.MeshStandardMaterial({
-      color: isSkin ? C.skin : C.coat,
-      roughness: isSkin ? 0.7 : 0.8,
-      metalness: isSkin ? 0.0 : 0.05,
-    });
-    
-    o.material = newMat;
+    // 保留原 PBR material，只做 color tint，保留貼圖與法線
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (mat && mat.isMeshStandardMaterial) {
+      mat.color.set(isSkin ? C.skin : C.coat);
+      mat.needsUpdate = true;
+    } else if (mat) {
+      // 非 StandardMaterial，退回新建一個保留基本參數
+      const newMat = new THREE.MeshStandardMaterial({
+        color: isSkin ? C.skin : C.coat,
+        roughness: isSkin ? 0.7 : 0.8,
+        metalness: isSkin ? 0.0 : 0.05,
+        map: mat.map,
+        normalMap: mat.normalMap,
+        roughnessMap: mat.roughnessMap,
+        metalnessMap: mat.metalnessMap,
+      });
+      o.material = newMat;
+    }
     
     if (isSkin) skinMeshes++;
     else coatMeshes++;
@@ -273,7 +283,8 @@ function addReinAccessories(root) {
       new THREE.MeshStandardMaterial({ color:C.hair, roughness:0.9 })
     );
     hairShell.position.set(0, 0.05, -0.02);
-    hairShell.scale.set(1.05, 1.05, 1.05);
+    hairShell.scale.set(1.25, 1.25, 1.25);
+    hairShell.renderOrder = 10;
     head.add(hairShell);
 
     // 瀏海（多束分層）
