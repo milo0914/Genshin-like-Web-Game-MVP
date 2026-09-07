@@ -72,16 +72,16 @@ stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0e1322);
-scene.fog = new THREE.Fog(0x0e1322, 4, 20);
+scene.fog = new THREE.Fog(0x0e1322, 15, 40);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, 3.0, 6.0);
+camera.position.set(0, 2.0, 3.5);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.5, 0);
+controls.target.set(0, 1.0, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 2.0;
-controls.maxDistance = 12;
+controls.minDistance = 1.5;
+controls.maxDistance = 10;
 
 scene.add(new THREE.HemisphereLight(0xa0b0c0, 0x2a3050, 0.55));
 const keyLight = new THREE.DirectionalLight(0xfff0d8, 1.5);
@@ -134,7 +134,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character.scale.setScalar(scale);
   character.position.x -= center.x * scale;
   character.position.y -= box.min.y * scale;
-  character.position.y += 0.8 * scale;
+  character.position.y += 0.2 * scale;
   character.position.z -= center.z * scale;
 
   // ========== 關鍵突破: 剝離 Soldier 原紋理 ==========
