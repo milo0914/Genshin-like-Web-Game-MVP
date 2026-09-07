@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><body>
+<script src="docs/vendor/three.min.js"></script>
+<script src="docs/vendor/GLTFLoader.js"></script>
+<pre id="out">loading...</pre>
+<script>
+new THREE.GLTFLoader().load('docs/models/Soldier.glb', (gltf)=>{
+  const lines = ['=== MESH NAMES ==='];
+  gltf.scene.traverse(o=>{ if(o.isMesh) lines.push('MESH: '+o.name+' mat='+(o.material?.name||'?')); });
+  lines.push('=== BONE NAMES ===');
+  gltf.scene.traverse(o=>{ if(o.isBone) lines.push('BONE: '+o.name); });
+  lines.push('=== ANIMATIONS ===');
+  gltf.animations.forEach(c=>lines.push('CLIP: '+c.name+' dur='+c.duration.toFixed(2)));
+  document.getElementById('out').textContent = lines.join('\n');
+},undefined,err=>{
+  document.getElementById('out').textContent = 'ERR: '+err;
+});
+</script>
+</body></html>

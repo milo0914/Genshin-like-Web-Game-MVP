@@ -1,0 +1,21 @@
+<!DOCTYPE html><body><pre id="o">loading</pre>
+<script src="docs/vendor/three.min.js"></script>
+<script src="docs/vendor/GLTFLoader.js"></script>
+<script>
+new THREE.GLTFLoader().load('docs/models/Soldier.glb', g=>{
+  const lines=['=== SKINNED MESH VERTICES ==='];
+  let total=0, totalTris=0;
+  g.scene.traverse(o=>{
+    if(o.isMesh && o.geometry){
+      const idx=o.geometry.index;
+      const vCount = idx? idx.count : o.geometry.attributes.position.count;
+      const tri = idx? idx.count/3 : vCount/3;
+      lines.push(`${o.name}: ${o.geometry.attributes.position.count} verts, ${tri} tris`);
+      total += o.geometry.attributes.position.count;
+      totalTris += tri;
+    }
+  });
+  lines.push(`TOTAL: ${total} verts, ${totalTris} tris`);
+  document.getElementById('o').textContent = lines.join('\n');
+},undefined,e=>document.getElementById('o').textContent='ERR '+e);
+</script></body></html>

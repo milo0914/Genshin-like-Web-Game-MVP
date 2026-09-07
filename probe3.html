@@ -1,0 +1,17 @@
+<!DOCTYPE html><body><pre id="o">loading</pre>
+<script src="docs/vendor/three.min.js"></script>
+<script src="docs/vendor/GLTFLoader.js"></script>
+<script>
+new THREE.GLTFLoader().load('docs/models/Soldier.glb', g=>{
+  const lines=['=== MATERIALS WITH MAPS ==='];
+  g.scene.traverse(o=>{
+    if(o.isMesh && o.material){
+      const m=o.material;
+      lines.push(`${o.name}:`);
+      lines.push(`  color=${m.color?.getHexString()} hasMap=${!!m.map} hasNormalMap=${!!m.normalMap} hasMetalnessMap=${!!m.metalnessMap}`);
+      if(m.map) lines.push(`  map=${m.map.image?.width}x${m.map.image?.height}`);
+    }
+  });
+  document.getElementById('o').textContent = lines.join('\n');
+},undefined,e=>document.getElementById('o').textContent='ERR '+e);
+</script></body></html>
