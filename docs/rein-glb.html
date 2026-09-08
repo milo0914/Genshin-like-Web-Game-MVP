@@ -74,8 +74,8 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.StandardToneMapping;
-renderer.toneMappingExposure = 0.75;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 0.9;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
