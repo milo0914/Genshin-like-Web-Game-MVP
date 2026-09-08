@@ -130,6 +130,9 @@ let currentElement = 'fire';
 let autoRotate = true;
 const accessoryCrys = { fire:null, ice:null, thunder:null };
 
+// 全域變形參數，供 animate loop 每幀套用
+let deformParams = {head:1.18, spine:1.10, leg:1.15, waist:0.90};
+
 function deformSkeletonToAnime(root, params = {head:1.18, spine:1.10, leg:1.15, waist:0.90}){
   // 以骨骼名稱做第一性原則變形：7.5頭身、瘦身、收腰、拉長腿
   const baseScales = {
@@ -809,13 +812,14 @@ function setupUI() {
   const tSkin = document.getElementById('t-skin');
   const updateDeform = () => {
     if (!character) return;
-    const params = {
+    deformParams = {
       head: parseFloat(sHead.value),
       spine: parseFloat(sSpine.value),
       leg: parseFloat(sLeg.value),
       waist: parseFloat(sWaist.value)
     };
-    deformSkeletonToAnime(character, params);
+    // 即時套用一次（下一幀 animate 會持續維持）
+    deformSkeletonToAnime(character, deformParams);
     // 程序化皮膚上色強度
     const t = parseFloat(tSkin.value);
     character.traverse(o => {
@@ -856,6 +860,8 @@ function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   if (autoRotate && character) character.rotation.y += dt * 0.4;
   if (mixer) mixer.update(dt);
+  // 每幀在 mixer 之後重新套用骨骼變形，防止動畫覆蓋
+  if (character) deformSkeletonToAnime(character, deformParams);
   controls.update();
   renderer.render(scene, camera);
 }
