@@ -257,59 +257,6 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   const meshesAfterAccessories = findAllMeshes(character).length;
   console.log(`Meshes before accessories: ${meshesBeforeAccessories}, after: ${meshesAfterAccessories}`);
 
-  // 再次為所有配件 mesh 設置 material
-  const allMeshes2 = findAllMeshes(character);
-  let accessoryCount = 0;
-  
-  allMeshes2.forEach(o => {
-    if (!o.material) return;
-    const n = (o.name||'').toLowerCase();
-    
-    // 配件使用金屬色或元素色
-    const isAccessory = n.includes('crystal') || n.includes('element') || 
-                        n.includes('sword') || n.includes('scabbard') ||
-                        n.includes('belt') || n.includes('buckle') ||
-                        n.includes('clamp') || n.includes('clasp') ||
-                        n.includes('boot') || n.includes('horn');
-    
-    let color = C.coat;
-    let metalness = 0.05;
-    let roughness = 0.8;
-    
-    if (isAccessory) {
-      if (n.includes('ice')) color = C.ice;
-      else if (n.includes('thunder')) color = C.thunder;
-      else if (n.includes('fire')) color = C.fire;
-      else color = C.metal;
-      metalness = 0.9;
-      roughness = 0.2;
-    }
-    
-    // 保留原 PBR，只 tint color 與調整金屬/粗糙度
-    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
-    if (mat && mat.isMeshStandardMaterial) {
-      mat.color.set(color);
-      if ('metalness' in mat) mat.metalness = metalness;
-      if ('roughness' in mat) mat.roughness = roughness;
-      mat.needsUpdate = true;
-    } else if (mat) {
-      // fallback 新建保留 maps
-      const newMat = new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: roughness,
-        metalness: metalness,
-        map: mat.map,
-        normalMap: mat.normalMap,
-        roughnessMap: mat.roughnessMap,
-        metalnessMap: mat.metalnessMap,
-      });
-      o.material = newMat;
-    }
-    accessoryCount++;
-  });
-  
-  console.log(`Accessory materials: ${accessoryCount} meshes processed`);
-
   let bones = 0;
   character.traverse(o => { if (o.isBone) bones++; });
 
