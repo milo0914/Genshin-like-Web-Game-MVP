@@ -43,6 +43,14 @@
     <button class="el-thunder" data-el="thunder">雷</button>
   </div>
 </div>
+<div id="deform-controls" style="position:absolute;right:16px;top:120px;background:rgba(10,14,25,0.85);border:1px solid #4A5A73;border-radius:10px;padding:10px;backdrop-filter:blur(8px);z-index:5;width:240px;font-size:11px;color:#cfddf6">
+  <div style="font-weight:bold;margin-bottom:6px;color:#E0A42E">變形參數</div>
+  <label>頭部放大 <input id="s-head" type="range" min="1.0" max="1.5" step="0.01" value="1.18" style="width:100%"></label>
+  <label>軀幹拉長 <input id="s-spine" type="range" min="1.0" max="1.3" step="0.01" value="1.10" style="width:100%"></label>
+  <label>腿部拉長 <input id="s-leg" type="range" min="1.0" max="1.4" step="0.01" value="1.15" style="width:100%"></label>
+  <label>腰收縮 <input id="s-waist" type="range" min="0.8" max="1.0" step="0.01" value="0.90" style="width:100%"></label>
+  <label style="margin-top:8px;display:block">程序化皮膚 <input id="t-skin" type="range" min="0" max="1" step="0.01" value="1" style="width:100%"></label>
+</div>
 <div id="status">載入中...</div>
 
 <script src="vendor/three.min.js"></script>
@@ -122,19 +130,19 @@ let currentElement = 'fire';
 let autoRotate = true;
 const accessoryCrys = { fire:null, ice:null, thunder:null };
 
-function deformSkeletonToAnime(root){
+function deformSkeletonToAnime(root, params = {head:1.18, spine:1.10, leg:1.15, waist:0.90}){
   // 以骨骼名稱做第一性原則變形：7.5頭身、瘦身、收腰、拉長腿
-  const boneScales = {
-    'mixamorigHips': [0.9, 0.9, 0.9],
-    'mixamorigSpine': [0.92, 1.05, 0.92],
-    'mixamorigSpine1': [0.90, 1.10, 0.90],
-    'mixamorigSpine2': [0.88, 1.12, 0.88],
+  const baseScales = {
+    'mixamorigHips': [params.waist, params.waist, params.waist],
+    'mixamorigSpine': [0.92, params.spine*0.96, 0.92],
+    'mixamorigSpine1': [params.waist, params.spine, params.waist],
+    'mixamorigSpine2': [params.waist*0.98, params.spine*1.02, params.waist*0.98],
     'mixamorigNeck': [0.95, 0.95, 0.95],
-    'mixamorigHead': [1.18, 1.18, 1.18],
-    'mixamorigLeftUpLeg': [0.92, 1.15, 0.92],
-    'mixamorigRightUpLeg': [0.92, 1.15, 0.92],
-    'mixamorigLeftLeg': [0.95, 1.10, 0.95],
-    'mixamorigRightLeg': [0.95, 1.10, 0.95],
+    'mixamorigHead': [params.head, params.head, params.head],
+    'mixamorigLeftUpLeg': [0.92, params.leg, 0.92],
+    'mixamorigRightUpLeg': [0.92, params.leg, 0.92],
+    'mixamorigLeftLeg': [0.95, params.leg*0.96, 0.95],
+    'mixamorigRightLeg': [0.95, params.leg*0.96, 0.95],
     'mixamorigLeftShoulder': [0.95, 0.95, 0.95],
     'mixamorigRightShoulder': [0.95, 0.95, 0.95],
     'mixamorigLeftArm': [0.92, 0.92, 0.92],
@@ -145,7 +153,7 @@ function deformSkeletonToAnime(root){
   root.traverse(o => {
     if (o.isBone) {
       const key = o.name;
-      const s = boneScales[key];
+      const s = baseScales[key];
       if (s) {
         o.scale.set(s[0], s[1], s[2]);
       }
@@ -786,9 +794,53 @@ function setupUI() {
     autoRotate = !autoRotate;
     document.getElementById('btn-spin').classList.toggle('active', autoRotate);
   });
-  document.querySelectorAll('.el-btn').forEach(b => {
-    b.addEventListener('click', () => setElement(b.dataset.el));
+  document.querySelectorAll('[data-el]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-el]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      // element switch logic can be added
+    });
   });
+  // 變形拉桿
+  const sHead = document.getElementById('s-head');
+  const sSpine = document.getElementById('s-spine');
+  const sLeg = document.getElementById('s-leg');
+  const sWaist = document.getElementById('s-waist');
+  const tSkin = document.getElementById('t-skin');
+  const updateDeform = () => {
+    if (!character) return;
+    const params = {
+      head: parseFloat(sHead.value),
+      spine: parseFloat(sSpine.value),
+      leg: parseFloat(sLeg.value),
+      waist: parseFloat(sWaist.value)
+    };
+    // 重置骨骼 scale 再重新套用
+    character.traverse(o => { if (o.isBone) o.scale.set(1,1,1); });
+    deformSkeletonToAnime(character, params);
+    // 程序化皮膚上色強度
+    const t = parseFloat(tSkin.value);
+    character.traverse(o => {
+      if (!o.isMesh) return;
+      const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!mat || !mat.isMeshStandardMaterial) return;
+      const n = (o.name||'').toLowerCase();
+      const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head');
+      if (!isSkin) return;
+      // 以 t 控制貼圖與純色混合
+      if (t > 0.5) {
+        if (mat.map) { mat.map = null; }
+        mat.color.set(C.skin);
+        mat.roughness = 0.7 + 0.3*(1-t);
+      } else {
+        // 回到原本貼圖+上色
+        mat.color.set(C.skin);
+      }
+      mat.needsUpdate = true;
+    });
+  };
+  [sHead, sSpine, sLeg, sWaist, tSkin].forEach(el => el && el.addEventListener('input', updateDeform));
+  updateDeform();
 }
 
 const clock = new THREE.Clock();
