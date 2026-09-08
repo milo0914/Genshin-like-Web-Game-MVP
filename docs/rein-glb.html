@@ -825,16 +825,25 @@ function setupUI() {
       const mat = Array.isArray(o.material) ? o.material[0] : o.material;
       if (!mat || !mat.isMeshStandardMaterial) return;
       const n = (o.name||'').toLowerCase();
-      const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head');
-      if (!isSkin) return;
-      // 以 t 控制貼圖與純色混合
+      const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head') || n.includes('vanguard_visor');
+      const isBody = n.includes('vanguard_mesh') || (n.includes('vanguard') && !n.includes('visor'));
+      if (!isSkin && !isBody) return;
+      // 程序化剝離貼圖並上色
       if (t > 0.5) {
-        if (mat.map) { mat.map = null; }
-        mat.color.set(C.skin);
-        mat.roughness = 0.7 + 0.3*(1-t);
+        if (mat.map) { mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalnessMap = null; }
+        if (isSkin) {
+          mat.color.set(C.skin);
+          mat.roughness = 0.7 + 0.3*(1-t);
+          mat.metalness = 0.0;
+        } else if (isBody) {
+          mat.color.set(C.coat);
+          mat.roughness = 0.8;
+          mat.metalness = 0.05;
+        }
       } else {
-        // 回到原本貼圖+上色
-        mat.color.set(C.skin);
+        // 回到貼圖+上色混合
+        if (isSkin) mat.color.set(C.skin);
+        else if (isBody) mat.color.set(C.coat);
       }
       mat.needsUpdate = true;
     });
