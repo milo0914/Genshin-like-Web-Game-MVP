@@ -851,6 +851,9 @@ function setupUI() {
     });
   };
   [sHead, sSpine, sLeg, sWaist, tSkin].forEach(el => el && el.addEventListener('input', updateDeform));
+  // 全域暴露供除錯
+  window.updateDeform = updateDeform;
+  console.log('[setupUI] bound updateDeform, sliders:', {sHead:!!sHead,sSpine:!!sSpine,sLeg:!!sLeg,sWaist:!!sWaist,tSkin:!!tSkin});
   updateDeform();
 }
 
