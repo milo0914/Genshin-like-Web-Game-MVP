@@ -49,7 +49,7 @@
   <label>軀幹拉長 <input id="s-spine" type="range" min="1.0" max="1.3" step="0.01" value="1.10" style="width:100%"></label>
   <label>腿部拉長 <input id="s-leg" type="range" min="1.0" max="1.4" step="0.01" value="1.15" style="width:100%"></label>
   <label>腰收縮 <input id="s-waist" type="range" min="0.8" max="1.0" step="0.01" value="0.90" style="width:100%"></label>
-  <label style="margin-top:8px;display:block">程序化皮膚 <input id="t-skin" type="range" min="0" max="1" step="0.01" value="1" style="width:100%"></label>
+  <label style="margin-top:8px;display:block">程序化上色 <input id="t-skin" type="range" min="0" max="1" step="1" value="1" style="width:100%"></label>
 </div>
 <div id="status">載入中...</div>
 
@@ -59,12 +59,12 @@
 
 <script>
 const C = {
-  hair: 0x3D2B1F, hairStreak: 0xE8F1FF,
-  skin: 0xE8C4A0,
-  coat: 0x7A8B9A, coatInner: 0x3B2A4E,
-  undersuit: 0x1B1E24, armor: 0x6E7681, pauldron: 0x2A2F38,
-  metal: 0xA9B0BC, pants: 0x1B1E24, boots: 0x14171C,
-  fire: 0xD64E2B, ice: 0x6FC7E8, thunder: 0x8A5BE0,
+  hair: 0x1A1A2E, hairStreak: 0xC8B89A,
+  skin: 0xD4956B,   // 暖膚色，低曝光下仍可見
+  coat: 0x1E2D4A, coatInner: 0x0F1829,
+  undersuit: 0x0A0E1A, armor: 0x3A4A6A, pauldron: 0x1A2035,
+  metal: 0x8A9ABF, pants: 0x0A0E1A, boots: 0x080C15,
+  fire: 0xE05020, ice: 0x40B0E0, thunder: 0x7040D0,
 };
 
 const stage = document.getElementById('stage');
@@ -74,8 +74,8 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
+renderer.toneMapping = THREE.StandardToneMapping;
+renderer.toneMappingExposure = 0.75;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -184,57 +184,61 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   // ========== 第一性原則變形：以程式算法將軍裝骨架變形為 7.5頭身動漫劍士 ==========
   deformSkeletonToAnime(character);
 
-  // ========== 保留 PBR 材質僅上色，避免紋理剝離造成的白灰 ==========
-  // 使用更簡單可靠的方法：直接創建新的 material
+  // ========== 程序化上色：剝離 Soldier 原紋理，全面套用黎恩配色 ==========
+  // 這是第一性原則的算法上色，不走手動建模流程
   let totalMeshes = 0, skinMeshes = 0, coatMeshes = 0;
-  
+
   function findAllMeshes(obj, list = []) {
     if (obj.isMesh) list.push(obj);
     obj.children.forEach(child => findAllMeshes(child, list));
     return list;
   }
-  
+
   const allMeshes = findAllMeshes(character);
-  console.log(`Found ${allMeshes.length} total meshes`);
-  
   allMeshes.forEach(o => {
     if (!o.material) return;
     totalMeshes++;
-    
+
     const n = (o.name||'').toLowerCase();
-    
-    // 判斷是否是皮膚區域
-    const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || 
+
+    const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') ||
                    n.includes('finger') || n.includes('ear') || n.includes('neck') ||
                    n.includes('skin') || n.includes('head') || n.includes('eye') ||
                    n.includes('nose') || n.includes('mouth') || n.includes('chin') ||
                    n.includes('forearm') || n.includes('upperarm') || n.includes('thigh') ||
-                   n.includes('calf') || n.includes('foot') || n.includes('toe');
-    
-    // 保留原 PBR material，只做 color tint，保留貼圖與法線
+                   n.includes('calf') || n.includes('foot') || n.includes('toe') ||
+                   n.includes('vanguard_visor');
+
+    const isBody = n.includes('vanguard_mesh') ||
+                   (n.includes('vanguard') && !n.includes('visor'));
+
+    // 判斷配件（三相之劍等）
+    const isAccessory = n.includes('ice') || n.includes('thunder') || n.includes('fire') ||
+                        n.includes('soul') || n.includes('blade') || n.includes('scabbard') ||
+                        n.includes('earring') || n.includes('hair') || n.includes('ribbon') ||
+                        n.includes('crystal');
+
     const mat = Array.isArray(o.material) ? o.material[0] : o.material;
-    if (mat && mat.isMeshStandardMaterial) {
-      mat.color.set(isSkin ? C.skin : C.coat);
-      mat.needsUpdate = true;
-    } else if (mat) {
-      // 非 StandardMaterial，退回新建一個保留基本參數
-      const newMat = new THREE.MeshStandardMaterial({
-        color: isSkin ? C.skin : C.coat,
-        roughness: isSkin ? 0.7 : 0.8,
-        metalness: isSkin ? 0.0 : 0.05,
-        map: mat.map,
-        normalMap: mat.normalMap,
-        roughnessMap: mat.roughnessMap,
-        metalnessMap: mat.metalnessMap,
-      });
-      o.material = newMat;
+    let color, metalness, roughness;
+
+    if (isSkin) {
+      color = C.skin; metalness = 0.0; roughness = 0.65;
+    } else if (isAccessory) {
+      color = C.metal; metalness = 0.85; roughness = 0.2;
+    } else {
+      color = C.coat; metalness = 0.02; roughness = 0.8;
     }
-    
+
+    // 完全替換材質（剝離所有貼圖）
+    o.material = new THREE.MeshStandardMaterial({
+      color: color,
+      roughness: roughness,
+      metalness: metalness,
+    });
+
     if (isSkin) skinMeshes++;
-    else coatMeshes++;
+    else if (isBody) coatMeshes++;
   });
-  
-  console.log(`Processed: ${totalMeshes} meshes (${skinMeshes} skin, ${coatMeshes} coat)`);
 
   // 在添加配件後再次統計
   const meshesBeforeAccessories = findAllMeshes(character).length;
@@ -309,7 +313,7 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   let bones = 0;
   character.traverse(o => { if (o.isBone) bones++; });
 
-  setStatus(`✓ 渲染成功 — ${bones} 骨骼 / ${animations.length} 動畫 / PBR 保留僅上色 / ${meshesAfterAccessories} mesh / 黎恩配色已套用`);
+  setStatus(`✓ 渲染成功 — ${bones} 骨骼 / ${animations.length} 動畫 / 程序化上色已套用 / ${meshesAfterAccessories} mesh / 黎恩配色`);
   setupUI();
 }, undefined, (err) => {
   setStatus('❌ 載入失敗: ' + (err.message||err), true);
@@ -820,35 +824,33 @@ function setupUI() {
     };
     // 即時套用一次（下一幀 animate 會持續維持）
     deformSkeletonToAnime(character, deformParams);
-    // 程序化皮膚上色強度
+  // 程序化皮膚上色強度（0=保留貼圖原色，1=完全程序化上色）
     const t = parseFloat(tSkin.value);
-    character.traverse(o => {
-      if (!o.isMesh) return;
-      const mat = Array.isArray(o.material) ? o.material[0] : o.material;
-      if (!mat) return;
-      const n = (o.name||'').toLowerCase();
-      const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head') || n.includes('vanguard_visor');
-      const isBody = n.includes('vanguard_mesh') || (n.includes('vanguard') && !n.includes('visor'));
-      if (!isSkin && !isBody) return;
-      // 程序化剝離貼圖並上色
-      if (t > 0.5) {
-        if (mat.map) { mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalnessMap = null; }
-        if (isSkin) {
-          mat.color.set(C.skin);
-          mat.roughness = 0.7 + 0.3*(1-t);
-          mat.metalness = 0.0;
-        } else if (isBody) {
-          mat.color.set(C.coat);
-          mat.roughness = 0.8;
-          mat.metalness = 0.05;
+    if (character) {
+      character.traverse(o => {
+        if (!o.isMesh) return;
+        const n = (o.name||'').toLowerCase();
+        const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') ||
+                       n.includes('neck') || n.includes('skin') || n.includes('head') ||
+                       n.includes('vanguard_visor');
+        const isBody = n.includes('vanguard_mesh') || (n.includes('vanguard') && !n.includes('visor'));
+        if (!isSkin && !isBody) return;
+        const color = isSkin ? C.skin : C.coat;
+        const rough = isSkin ? 0.65 : 0.8;
+        const metal = isSkin ? 0.0 : 0.02;
+        o.material.color.set(color);
+        o.material.roughness = rough;
+        o.material.metalness = metal;
+        // 剝離貼圖確保顏色純正
+        if (t > 0.5) {
+          o.material.map = null;
+          o.material.normalMap = null;
+          o.material.roughnessMap = null;
+          o.material.metalnessMap = null;
         }
-      } else {
-        // 回到貼圖+上色混合
-        if (isSkin) mat.color.set(C.skin);
-        else if (isBody) mat.color.set(C.coat);
-      }
-      mat.needsUpdate = true;
-    });
+        o.material.needsUpdate = true;
+      });
+    }
   };
   [sHead, sSpine, sLeg, sWaist, tSkin].forEach(el => el && el.addEventListener('input', updateDeform));
   updateDeform();
