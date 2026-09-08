@@ -815,8 +815,6 @@ function setupUI() {
       leg: parseFloat(sLeg.value),
       waist: parseFloat(sWaist.value)
     };
-    // 重置骨骼 scale 再重新套用
-    character.traverse(o => { if (o.isBone) o.scale.set(1,1,1); });
     deformSkeletonToAnime(character, params);
     // 程序化皮膚上色強度
     const t = parseFloat(tSkin.value);
