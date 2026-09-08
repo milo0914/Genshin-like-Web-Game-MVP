@@ -122,6 +122,39 @@ let currentElement = 'fire';
 let autoRotate = true;
 const accessoryCrys = { fire:null, ice:null, thunder:null };
 
+function deformSkeletonToAnime(root){
+  // 以骨骼名稱做第一性原則變形：7.5頭身、瘦身、收腰、拉長腿
+  const boneScales = {
+    'mixamorigHips': [0.9, 0.9, 0.9],
+    'mixamorigSpine': [0.92, 1.05, 0.92],
+    'mixamorigSpine1': [0.90, 1.10, 0.90],
+    'mixamorigSpine2': [0.88, 1.12, 0.88],
+    'mixamorigNeck': [0.95, 0.95, 0.95],
+    'mixamorigHead': [1.18, 1.18, 1.18],
+    'mixamorigLeftUpLeg': [0.92, 1.15, 0.92],
+    'mixamorigRightUpLeg': [0.92, 1.15, 0.92],
+    'mixamorigLeftLeg': [0.95, 1.10, 0.95],
+    'mixamorigRightLeg': [0.95, 1.10, 0.95],
+    'mixamorigLeftShoulder': [0.95, 0.95, 0.95],
+    'mixamorigRightShoulder': [0.95, 0.95, 0.95],
+    'mixamorigLeftArm': [0.92, 0.92, 0.92],
+    'mixamorigRightArm': [0.92, 0.92, 0.92],
+    'mixamorigLeftForeArm': [0.90, 0.90, 0.90],
+    'mixamorigRightForeArm': [0.90, 0.90, 0.90],
+  };
+  root.traverse(o => {
+    if (o.isBone) {
+      const key = o.name;
+      const s = boneScales[key];
+      if (s) {
+        o.scale.set(s[0], s[1], s[2]);
+      }
+    }
+  });
+  // 額外做一次整體瘦身拉長
+  root.scale.set(1, 1.08, 1);
+}
+
 new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character = gltf.scene;
   animations = gltf.animations || [];
@@ -137,7 +170,10 @@ new THREE.GLTFLoader().load('models/Soldier.glb', (gltf) => {
   character.position.y += 0.0 * scale;
   character.position.z -= center.z * scale;
 
-  // ========== 關鍵突破: 剝離 Soldier 原紋理 ==========
+  // ========== 第一性原則變形：以程式算法將軍裝骨架變形為 7.5頭身動漫劍士 ==========
+  deformSkeletonToAnime(character);
+
+  // ========== 保留 PBR 材質僅上色，避免紋理剝離造成的白灰 ==========
   // 使用更簡單可靠的方法：直接創建新的 material
   let totalMeshes = 0, skinMeshes = 0, coatMeshes = 0;
   
