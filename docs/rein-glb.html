@@ -822,20 +822,17 @@ function setupUI() {
     deformSkeletonToAnime(character, deformParams);
     // 程序化皮膚上色強度
     const t = parseFloat(tSkin.value);
-    console.log('[SkinSlider] t=', t, 'tSkin.value=', tSkin.value);
     character.traverse(o => {
       if (!o.isMesh) return;
       const mat = Array.isArray(o.material) ? o.material[0] : o.material;
       if (!mat) return;
       const n = (o.name||'').toLowerCase();
-      console.log('[SkinSlider] mesh:', n, 'mat.type:', mat.type, 'isStd:', mat.isMeshStandardMaterial, 'hasMap:', !!mat.map);
       const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head') || n.includes('vanguard_visor');
       const isBody = n.includes('vanguard_mesh') || (n.includes('vanguard') && !n.includes('visor'));
       if (!isSkin && !isBody) return;
-      console.log('[SkinSlider] MATCHED:', n, 'isSkin:', isSkin, 'isBody:', isBody);
       // 程序化剝離貼圖並上色
       if (t > 0.5) {
-        if (mat.map) { mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalnessMap = null; console.log('[SkinSlider] STRIPPED maps for', n); }
+        if (mat.map) { mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalnessMap = null; }
         if (isSkin) {
           mat.color.set(C.skin);
           mat.roughness = 0.7 + 0.3*(1-t);
