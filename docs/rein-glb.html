@@ -86,7 +86,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a2040);
+scene.background = new THREE.Color(0x0e1525);
 scene.fog = new THREE.Fog(0x080c18, 20, 50);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
@@ -507,7 +507,7 @@ character.add(capeGroup);
 
 // Position character
 character.position.set(0, 0, 0);
-character.scale.setScalar(1.3);
+character.scale.setScalar(3.0);
 scene.add(character);
 
 // Store refs
