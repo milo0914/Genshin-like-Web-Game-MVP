@@ -736,6 +736,24 @@ function setStatus(msg) {
 }
 function setElement(el) {
   currentElement = el;
+  // 更新配色表依元素
+  if (el === 'fire') { C.coat = 0x2050A0; C.metal = 0xCCAA44; }
+  if (el === 'ice') { C.coat = 0x2A6FA0; C.metal = 0xAADDFF; }
+  if (el === 'thunder') { C.coat = 0x4A3A80; C.metal = 0xE0CC66; }
+  // 刷新材質
+  if (character) {
+    character.traverse(o => {
+      if (!o.isMesh) return;
+      const n = (o.name||'').toLowerCase();
+      const isAccessory = n.includes('ice') || n.includes('thunder') || n.includes('fire') ||
+                          n.includes('soul') || n.includes('blade') || n.includes('scabbard') ||
+                          n.includes('earring');
+      const isBody = n.includes('vanguard_mesh') || (n.includes('vanguard') && !n.includes('visor'));
+      const isSkin = n.includes('visor') || n.includes('face') || n.includes('hand') || n.includes('neck') || n.includes('skin') || n.includes('head');
+      if (isAccessory) { o.material.color.set(C.metal); }
+      else if (isBody) { o.material.color.set(C.coat); }
+    });
+  }
   [accessoryCrys.fire, accessoryCrys.ice, accessoryCrys.thunder].forEach(c => {
     if (c) c.material.emissiveIntensity = 0.8;
   });
@@ -749,11 +767,7 @@ function setupUI() {
     document.getElementById('btn-spin').classList.toggle('active', autoRotate);
   });
   document.querySelectorAll('[data-el]').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('[data-el]').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      // element switch logic can be added
-    });
+    b.addEventListener('click', () => setElement(b.dataset.el));
   });
   // 變形拉桿
   const sHead = document.getElementById('s-head');
