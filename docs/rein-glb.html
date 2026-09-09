@@ -59,12 +59,12 @@
 
 <script>
 const C = {
-  hair: 0x1A1A2E, hairStreak: 0xC8B89A,
-  skin: 0xD4956B,   // 暖膚色，低曝光下仍可見
-  coat: 0x1E2D4A, coatInner: 0x0F1829,
-  undersuit: 0x0A0E1A, armor: 0x3A4A6A, pauldron: 0x1A2035,
-  metal: 0x8A9ABF, pants: 0x0A0E1A, boots: 0x080C15,
-  fire: 0xE05020, ice: 0x40B0E0, thunder: 0x7040D0,
+  hair: 0x1A1A2E, hairStreak: 0xC8A878,
+  skin: 0xF0B88A,   // 暖膚色，高亮度確保可見
+  coat: 0x1A3A6A, coatInner: 0x0C1A30,
+  undersuit: 0x080F1E, armor: 0x3A5080, pauldron: 0x152040,
+  metal: 0xAA8844, metalDark: 0x665533, pants: 0x0C1220, boots: 0x080C15,
+  fire: 0xE05020, ice: 0x40C0FF, thunder: 0x9050F0,
 };
 
 const stage = document.getElementById('stage');
@@ -74,8 +74,8 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.LinearToneMapping;
-renderer.toneMappingExposure = 0.9;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.toneMappingExposure = 1.0;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -91,16 +91,16 @@ controls.dampingFactor = 0.08;
 controls.minDistance = 2.0;
 controls.maxDistance = 12;
 
-scene.add(new THREE.HemisphereLight(0xa0b0c0, 0x2a3050, 0.55));
-const keyLight = new THREE.DirectionalLight(0xfff0d8, 1.5);
+scene.add(new THREE.HemisphereLight(0xa0c0ff, 0x2a2040, 0.7));
+const keyLight = new THREE.DirectionalLight(0xfff5e0, 2.0);
 keyLight.position.set(3, 5, 3);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
 scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0x88a0c0, 0.55);
+const fillLight = new THREE.DirectionalLight(0x8899cc, 0.6);
 fillLight.position.set(-3, 3, -2);
 scene.add(fillLight);
-const rimLight = new THREE.DirectionalLight(0xc8d8ff, 0.4);
+const rimLight = new THREE.DirectionalLight(0xc0d8ff, 0.5);
 rimLight.position.set(0, 3, -5);
 scene.add(rimLight);
 
