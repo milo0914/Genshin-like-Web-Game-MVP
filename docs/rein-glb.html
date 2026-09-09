@@ -541,7 +541,7 @@ const deformParams = { head:1.20, spine:1.12, leg:1.15, waist:0.88 };
 
 function applyDeform() {
   // 比例變形：整個 character scale（乘以全局縮放確保角色夠大）
-  const GLOBAL_SCALE = 1.8;
+  character.scale.setScalar(1.5);
   const s = deformParams;
   character.scale.set(
     (0.90 + (1-s.waist)*0.2) * GLOBAL_SCALE,
