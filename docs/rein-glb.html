@@ -507,7 +507,6 @@ character.add(capeGroup);
 
 // Position character
 character.position.set(0, 0, 0);
-character.scale.setScalar(3.0);
 scene.add(character);
 
 // Store refs
@@ -541,13 +540,13 @@ const sWaist= document.getElementById('s-waist');
 const deformParams = { head:1.20, spine:1.12, leg:1.15, waist:0.88 };
 
 function applyDeform() {
-  // 比例變形：整個 character scale
+  // 比例變形：整個 character scale（乘以全局縮放確保角色夠大）
+  const GLOBAL_SCALE = 3.0;
   const s = deformParams;
-  // 我們直接改 scale，因為所有部件相對位置都是程序化的
   character.scale.set(
-    0.90 + (1-s.waist)*0.2,  // X: waist affects width
-    s.leg * 0.92 + s.spine * 0.08, // Y: overall height
-    0.90 + (1-s.waist)*0.2   // Z
+    (0.90 + (1-s.waist)*0.2) * GLOBAL_SCALE,
+    (s.leg * 0.92 + s.spine * 0.08) * GLOBAL_SCALE,
+    (0.90 + (1-s.waist)*0.2) * GLOBAL_SCALE
   );
   // Head scale override
   const headMesh = character.children.find(c => c.isGroup && c !== crystalGroup && c !== capeGroup);
