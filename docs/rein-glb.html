@@ -540,8 +540,8 @@ const sWaist= document.getElementById('s-waist');
 const deformParams = { head:1.20, spine:1.12, leg:1.15, waist:0.88 };
 
 function applyDeform() {
-  // 比例變形：整個 character scale（乘以全局縮放確保角色夠大）
-  const BASE = 1.5;
+  // 比例變形：整個 character scale（基礎縮放 1.8 確保角色夠大）
+  const BASE = 1.8;
   const s = deformParams;
   character.scale.set(
     (0.90 + (1-s.waist)*0.2) * BASE,
