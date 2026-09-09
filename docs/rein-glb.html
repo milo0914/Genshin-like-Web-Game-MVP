@@ -89,18 +89,18 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101830);
 scene.fog = new THREE.Fog(0x080c18, 20, 50);
 
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, 1.0, 2.8);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 2.5, 6.0);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.8, 0);
+controls.target.set(0, 2.0, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.minDistance = 2.5;
 controls.maxDistance = 12;
 
 // ---- Lighting: 鮮明配色需要充足光線 ----
-scene.add(new THREE.HemisphereLight(0x8090cc, 0x201830, 0.9));
-const key = new THREE.DirectionalLight(0xfff8e0, 3.0);
+scene.add(new THREE.HemisphereLight(0x8090cc, 0x201830, 1.0));
+const key = new THREE.DirectionalLight(0xfff8e0, 3.5);
 key.position.set(4, 6, 4);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
@@ -540,8 +540,8 @@ const sWaist= document.getElementById('s-waist');
 const deformParams = { head:1.20, spine:1.12, leg:1.15, waist:0.88 };
 
 function applyDeform() {
-  // 比例變形：整個 character scale（基礎縮放 1.8 確保角色夠大）
-  const BASE = 1.8;
+  // 比例變形：整個 character scale（基礎縮放 1.2 確保角色夠大且比例正常）
+  const BASE = 1.2;
   const s = deformParams;
   character.scale.set(
     (0.90 + (1-s.waist)*0.2) * BASE,
