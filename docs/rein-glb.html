@@ -51,25 +51,25 @@ button.active{background:#E0A42E;color:#0a0e1a;border-color:#E0A42E;font-weight:
 // ============================================================
 
 const C = {
-  // 配色表 — 高飽和度，確保渲染結果鮮明可辨
-  skin:      0xF0A878,   // 暖膚色（明亮桃膚）
-  hair:      0x1A1A2E,   // 深黑短髮
-  hairStreak:0xE8C888,   // 銀白挑染
-  coat:      0x1038A0,   // 暴風藍（鮮明深藍）
-  coatInner: 0x081030,   // 風衣內襯
-  undersuit: 0x080C18,   // 內衣
-  armor:     0x304888,   // 胸甲
-  metal:     0xCCAA44,   // 金色飾邊
-  metalDark: 0x665533,   // 暗金
-  pants:     0x0C1020,   // 褲子
-  boots:     0x080C15,   // 靴子
-  bandage:   0xF0E8D0,   // 繃帶
-  pauldron:  0x1A2040,   // 肩甲
-  eyeGold:   0xE8A820,   // 金瞳
-  eyeBlue:   0x40C0FF,   // 藍瞳
-  fire:      0xE05020,
-  ice:       0x40D0FF,
-  thunder:   0x9050F0,
+  // 高飽和度配色 —— 每個顏色在渲染中都有極大差異，確保視覺上清晰可辨
+  skin:      0xFFAA66,   // 明亮桃膚
+  hair:      0x111122,   // 深黑
+  hairStreak:0xFFDD88,   // 金白挑染
+  coat:      0x1155CC,   // 鮮明寶藍（與膚色、金形成強烈對比）
+  coatInner: 0x082266,   // 深藍內襯
+  undersuit: 0x0A0A1A,   // 深黑內衣
+  armor:     0x3377DD,   // 亮藍鎧甲
+  metal:     0xFFCC33,   // 鮮明金色
+  metalDark: 0x886622,   // 暗金
+  pants:     0x0A1020,   // 深藍褲
+  boots:     0x080C15,   // 黑靴
+  bandage:   0xFFF8E8,   // 純白繃帶
+  pauldron:  0x1A2244,   // 深藍肩甲
+  eyeGold:   0xFFCC00,   // 金瞳（高飽和）
+  eyeBlue:   0x00CCFF,   // 藍瞳（高飽和）
+  fire:      0xFF3300,
+  ice:       0x00EEFF,
+  thunder:   0xAA00FF,
 };
 
 // ---- Renderer & Scene ----
@@ -80,17 +80,17 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // 使用 LinearToneMapping 確保顏色不被壓縮——每種顏色都保持原始飽和度
-renderer.toneMapping = THREE.LinearToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.toneMappingExposure = 1.2;
 renderer.outputEncoding = THREE.sRGBEncoding;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0c1020);
+scene.background = new THREE.Color(0x1a1a3a);
 scene.fog = new THREE.Fog(0x080c18, 20, 50);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, 2.0, 5.0);
+camera.position.set(0, 1.4, 3.5);
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1.0, 0);
@@ -100,16 +100,16 @@ controls.minDistance = 2.5;
 controls.maxDistance = 12;
 
 // ---- Lighting: 鮮明配色需要充足光線 ----
-scene.add(new THREE.HemisphereLight(0x6080c0, 0x101020, 0.7));
-const key = new THREE.DirectionalLight(0xfff4e0, 2.2);
+scene.add(new THREE.HemisphereLight(0x8090cc, 0x201830, 0.8));
+const key = new THREE.DirectionalLight(0xfff8e8, 2.5);
 key.position.set(4, 6, 4);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0x8090c0, 0.6);
+const fill = new THREE.DirectionalLight(0x90a0d0, 0.7);
 fill.position.set(-4, 4, -2);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0xa0c0ff, 0.5);
+const rim = new THREE.DirectionalLight(0xb0c8ff, 0.6);
 rim.position.set(0, 5, -6);
 scene.add(rim);
 
